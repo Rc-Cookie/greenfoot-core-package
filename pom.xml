@@ -6,7 +6,7 @@
 
   <groupId>com.github.rccookie</groupId>
   <artifactId>greenfoot-core</artifactId>
-  <version>1.0</version>
+  <version>1.0.0.2</version>
 
   <name>greenfoot-core</name>
   <!-- FIXME change it to the project's website -->
@@ -47,6 +47,22 @@
         <plugin>
           <artifactId>maven-resources-plugin</artifactId>
           <version>3.0.2</version>
+          <executions>
+            <execution>
+              <phase>compile</phase>
+            </execution>
+          </executions>
+          <configuration>
+            <resources>
+              <resource>
+                <directory>src/main/java</directory>
+                <includes>
+                  <include>**/*.java</include>
+                  <include>**/*.gwt.xml</include>
+                </includes>
+              </resource>
+            </resources>
+          </configuration>
         </plugin>
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
@@ -76,6 +92,20 @@
         <plugin>
           <artifactId>maven-project-info-reports-plugin</artifactId>
           <version>3.0.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>3.2.0</version>
+          <executions>
+            <execution>
+              <id>attach-sources</id>
+              <phase>verify</phase>
+              <goals>
+                <goal>jar-no-fork</goal>
+              </goals>
+            </execution>
+          </executions>
         </plugin>
       </plugins>
     </pluginManagement>
