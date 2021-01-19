@@ -1,8 +1,8 @@
 package com.github.rccookie.greenfoot.core;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import greenfoot.Actor;
@@ -10,31 +10,27 @@ import greenfoot.ActorVisitor;
 import greenfoot.Greenfoot;
 import greenfoot.GreenfootImage;
 import greenfoot.MouseInfo;
-import greenfoot.MouseInfoVisitor;
 import greenfoot.World;
-import com.github.rccookie.greenfoot.core.AdvancedActor;
-import com.github.rccookie.greenfoot.core.physics.PhysicalActor;
+
+import com.github.rccookie.greenfoot.core.CoreActor;
 import com.github.rccookie.common.geometry.Transform2D;
 import com.github.rccookie.common.geometry.Vector2D;
 import com.github.rccookie.greenfoot.event.Input;
-import com.github.rccookie.greenfoot.core.physics.BoxCollider;
-import com.github.rccookie.greenfoot.core.physics.Collider;
 import com.github.rccookie.common.data.json.JsonField;
 import com.github.rccookie.common.data.json.JsonSerializable;
 import com.github.rccookie.common.event.Time;
 
 /**
- * The advanced actor is an improved version of the actor, sharing all its features and adding some more:
+ * The CoreActor is an improved version of the actor, sharing all its features and adding some more:
  * <ul>
  * <li>Double based localization with smooth movement and options to execute some code for each step moved over longer distances
  * <li>Vector and transform compatible movement methods
  * <li>Framerate dependent movement speed (see {@code fixedMove(int)}) to be independent of the framerate
  * <li>Included {@code Time} instance that is automaticly being updated
- * <li>Custom colliders that do not have to follow the actors image or rotation
  * <li>Information about the mouse state on this object and methods that may be executed when clicked
  * </ul>
- * Like the actor, the advanced actor is abstract, as its purpose is to be used for a specific implementation. It does not contain
- * any abstract methods though that had to be implemented.
+ * Like the actor, the CoreActor is abstract, as its purpose is to be used for a specific implementation. It does not contain
+ * any abstract methods though that may need to be implemented.
  * 
  * @author RcCookie
  * @version 1.1
@@ -45,119 +41,49 @@ import com.github.rccookie.common.event.Time;
  * @see Transform2D
  */
 @JsonSerializable
-public abstract class AdvancedActor extends Actor implements Serializable {
-
-
-    private static final long serialVersionUID = -4274554336226197438L;
-
-    public static boolean USE_COLLIDER_BY_DEFAULT = false;
-
-
-
+public abstract class CoreActor extends Actor {
 
     /**
      * The location of the actor stored in double coordinates.
      */
     @JsonField
-    protected Transform2D transform;
+    protected Transform2D transform = new Transform2D();
 
-    /**
-     * The collider of this actor. May be null if the normal collision physics of Greenfoot should be used. In that case physical actors will
-     * not interact with this actor.
-     * 
-     * @see PhysicalActor
-     */
-    @JsonField
-    private Collider collider;
-    
     /**
      * The time object of this actor. It is updated once per frame and can be accessed by extending classes.
      */
-    public final Time time;
-    
-    /**
-     * Weather the custom collider of this actor should follow the size of the image of this actor.
-     */
-    private boolean defaultCollider;
-
+    protected final Time time = new Time();
 
     private boolean hovered = false;
     private boolean pressed = false;
 
+    private String id = null;
 
 
-    private final List<Consumer<MouseInfo>> clickActions = new ArrayList<>();
-    private final List<Consumer<MouseInfo>> pressActions = new ArrayList<>();
-    private final List<Consumer<MouseInfo>> releaseActions = new ArrayList<>();
+
+    private final List<Runnable> clickActions = new ArrayList<>();
+    private final List<Runnable> pressActions = new ArrayList<>();
+    private final List<Runnable> releaseActions = new ArrayList<>();
 
     private final List<Consumer<World>> addedToWorldActions = new ArrayList<>();
 
 
-    
-    /**
-     * Constructs a new advanced actor.
-     * By default, every advanced actor will use a custom box collider and
-     * therefore interact with physical actors. This collider will follow the size of the image, also it that image is being changed.
-     */
-    public AdvancedActor(){
-        this(USE_COLLIDER_BY_DEFAULT);
-    }
 
     /**
-     * Constructs a new advanced actor with the choice of either using the default collider (an actual collider object) or refering
-     * to the actors image for collisions.
-     * 
-     * @param defaultCollider Weather a collider object should be used for this advanced actor.
+     * Constructs a new CoreActor.
      */
-    public AdvancedActor(boolean defaultCollider){
-        this(null, defaultCollider);
-    }
+    public CoreActor() { }
 
     /**
-     * Constructs a new advanced actor with the given custom collider. This collider will not follow the size of the image. If the
-     * parameter is {@code null}, the collisions will be based on the actors image.
-     * 
-     * @param collider The collider to use for this advanced actor
-     */
-    public AdvancedActor(Collider collider){
-        this(collider, false);
-    }
-
-    /**
-     * Utility constructor to only have one actual constructor.
-     * 
-     * @param collider The collider to use
-     * @param defaultCollider Weather the collider should follow the actors image
-     */
-    private AdvancedActor(Collider collider, boolean defaultCollider){
-        time = new Time();
-        transform = new Transform2D(0);
-        if(defaultCollider) setCollider(new BoxCollider(this));
-        else setCollider(collider);
-    }
-
-    /**
-     * This method cannot be overridden as it is neccecary for the advanced actor to function. Instead, the method {@code addedIntoWorld(greenfoot.World)}
+     * This method cannot be overridden as it is neccecary for the CoreActor to function. Instead, the method {@code addedIntoWorld(greenfoot.World)}
      * can be used.
+     * 
+     * @param w The world the actor got added to
      */
     @Override
     protected final void addedToWorld(World w){
         transform.location = getLocation();
-        if(collider != null) w.addObject(collider, getX(), getY());
         for(Consumer<World> action : addedToWorldActions) action.accept(w);
-    }
-
-    /**
-     * Sets the collider to the given one. It will not change according to the actors image. If it is {@code null}, the actors image will be used for collision
-     * detection.
-     * 
-     * @param collider The new collider for this actor
-     */
-    public void setCollider(Collider collider){
-        defaultCollider = false;
-        if(this.collider != null && getWorld() != null) getWorld().removeObject(this.collider);
-        this.collider = collider;
-        if(collider != null) collider.host = this;
     }
     
     /**
@@ -166,12 +92,11 @@ public abstract class AdvancedActor extends Actor implements Serializable {
     @Override
     public void setImage(GreenfootImage image){
         super.setImage(image);
-        if(defaultCollider) collider = new BoxCollider(this);
     }
-    
-    
+
+
     /**
-     * Neccecary for the advanced actor to work. Use {@code update()}, {@code earlyUpdate()} and {@code lateUpdate()} instead.
+     * Neccecary for the CoreActor to work. Use {@code update()}, {@code earlyUpdate()} and {@code lateUpdate()} instead.
      */
     public final void act(){
         earlyUpdate();
@@ -206,15 +131,28 @@ public abstract class AdvancedActor extends Actor implements Serializable {
      * <p>The default implementation does nothing.
      */
     public void lateUpdate() { }
-    
+
+
+
+    /**
+     * Returns an optional {@link CoreWorld} that this CoreActor lives in.
+     * 
+     * @return An optional containing the CoreWorld this CoreActor lives in, or an empty Optional if this CoreActor
+     * is not in a CoreWorld.
+     */
+    public Optional<CoreWorld> getCoreWorld() {
+        return Optional.ofNullable(getWorldOfType(CoreWorld.class));
+    }
+
+
 
     /**
      * Called whenever the mouse clicked onto this object (released the mouse on the object after it had been pressed down on it).
      * 
      * @param mouse Information about the mouse that clicked onto the object
      */
-    protected void onClick(MouseInfo mouse) {
-        for(Consumer<MouseInfo> action : clickActions) action.accept(mouse);
+    protected void onClick() {
+        for(Runnable action : clickActions) action.run();
     }
 
     /**
@@ -222,9 +160,9 @@ public abstract class AdvancedActor extends Actor implements Serializable {
      * 
      * @param mouse Information about the mouse that clicked onto the object
      */
-    protected void onPress(MouseInfo mouse){
+    protected void onPress(){
         pressed = true;
-        for(Consumer<MouseInfo> action : pressActions) action.accept(mouse);
+        for(Runnable action : pressActions) action.run();
     }
 
     /**
@@ -232,12 +170,12 @@ public abstract class AdvancedActor extends Actor implements Serializable {
      * 
      * @param mouse Information about the mouse that clicked onto the object
      */
-    protected void onRelease(MouseInfo mouse){
+    protected void onRelease(){
         pressed = false;
         if(hovered) {
-            onClick(mouse);
+            onClick();
         }
-        for(Consumer<MouseInfo> action : releaseActions) action.accept(mouse);
+        for(Runnable action : releaseActions) action.run();
     }
 
 
@@ -246,18 +184,10 @@ public abstract class AdvancedActor extends Actor implements Serializable {
      * clicked on this object.
      */
     public void click() {
-        MouseInfo mouse = MouseInfoVisitor.newMouseInfo();
-        MouseInfoVisitor.setActor(mouse, this);
-        MouseInfoVisitor.setButton(mouse, 1);
-        MouseInfoVisitor.setClickCount(mouse, 0);
-        int cell = getWorld() != null ? getWorld().getCellSize() : 1;
-        MouseInfoVisitor.setLoc(mouse, getX(), getY(), getX() * cell + cell / 2, getY() * cell + cell / 2);
-
         boolean realHovered = hovered;
         hovered = true;
-        onPress(mouse);
-        MouseInfoVisitor.setClickCount(mouse, 1);
-        onRelease(mouse);
+        onPress();
+        onRelease();
         hovered = realHovered;
     }
 
@@ -291,16 +221,9 @@ public abstract class AdvancedActor extends Actor implements Serializable {
      */
     private void internalAct(){
         MouseInfo mouse = Input.mouseInfo();
-        if(getCollider() != null) {
-            hovered = mouse != null ? ActorVisitor.containsPoint(collider, mouse.getX() * getWorld().getCellSize(), mouse.getY() * getWorld().getCellSize()) : false;
-            if(hovered && Greenfoot.mousePressed(getCollider())) onPress(mouse);
-            else if(pressed && Greenfoot.mouseClicked(null)) onRelease(mouse);
-        }
-        else{
-            hovered = mouse != null ? ActorVisitor.containsPoint(this, mouse.getX() * getWorld().getCellSize(), mouse.getY() * getWorld().getCellSize()) : false;
-            if(hovered && Greenfoot.mousePressed(this)) onPress(mouse);
-            else if(pressed && Greenfoot.mouseClicked(null)) onRelease(mouse);
-        }
+        hovered = mouse != null ? ActorVisitor.containsPoint(this, mouse.getX() * getWorld().getCellSize(), mouse.getY() * getWorld().getCellSize()) : false;
+        if(hovered && Greenfoot.mousePressed(this)) onPress();
+        else if(pressed && Greenfoot.mouseClicked(null)) onRelease();
     }
 
     private void timeUpdate(){
@@ -308,48 +231,33 @@ public abstract class AdvancedActor extends Actor implements Serializable {
     }
 
 
-    //colliding
-    @Override
-    protected <A> java.util.List<A> getIntersectingObjects(Class<A> cls){
-        Collider collider = getCollider();
-        if(collider == null) return super.getIntersectingObjects(cls);
-        return collider.getIntersectingObjects(cls);
+
+    /**
+     * Returns the id of this CoreActor. You can set it's id using
+     * {@link #setId(String)}.
+     * 
+     * @return The id of this CoreActor, defaulted to {@code null}
+     */
+    public String getId() {
+        return id;
     }
-    @Override
-    protected Actor getOneIntersectingObject(Class<?> cls){
-        Collider collider = getCollider();
-        if(collider == null) return super.getOneIntersectingObject(cls);
-        return collider.getOneIntersectingObject(cls);
+
+    /**
+     * Sets the id of this CoreActor. By default the id is {@code null}.
+     * You can request an CoreActor's id using {@link #getId()}.
+     * 
+     * @param id The new id for this CoreActor
+     * @return This CoreActor
+     */
+    public CoreActor setId(String id) {
+        this.id = id;
+        return this;
     }
-    @Override
-    protected boolean isTouching(Class<?> cls){
-        Collider collider = getCollider();
-        if(collider == null) return super.isTouching(cls);
-        return collider.isTouching(cls);
-    }
-    @Override
-    protected void removeTouching(Class<?> cls){
-        Collider collider = getCollider();
-        if(collider == null) super.removeTouching(cls);
-        collider.removeTouching(cls);
-    }
-    @Override
-    protected boolean intersects(Actor a){
-        Collider collider = getCollider();
-        if(collider == null) return super.intersects(a);
-        return collider.intersects(a);
-    }
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
     //fixed movement
-    
+
     /**
      * Moves the actor the specified distance multiplied by the current time delta. This means that if this method is called once per frame with the parameter {@code x}
      * the actor will in sum move the length of {@code x} per second, independent of the framerate.
@@ -383,7 +291,7 @@ public abstract class AdvancedActor extends Actor implements Serializable {
         movement.rotation *= time.deltaTime();
         move(movement);
     }
-    
+
     /**
      * Moves the actor the specified distance parallel to the x axis multiplied by the current time delta. This means that if this method is called once per frame with the parameter {@code x}
      * the actor will in sum move the length of {@code x} per second, independent of the framerate.
@@ -403,7 +311,7 @@ public abstract class AdvancedActor extends Actor implements Serializable {
     public void fixedMoveY(double distance){
         fixedMove(Vector2D.angledVector(90, distance));
     }
-    
+
     /**
      * Moves the actor the specified distance multiplied by the current time delta. Works just like {@code moveInSteps(Vector, double)} but scaled by the time delta like in {@code fixedMove(Vector)}.
      * 
@@ -430,7 +338,7 @@ public abstract class AdvancedActor extends Actor implements Serializable {
     public double fixedMoveInSteps(double distance, double stepSize){
         return fixedMoveInSteps(Vector2D.angledVector(transform.rotation, distance), stepSize).abs();
     }
-    
+
     /**
      * Turns the actor the specified amount of degrees multiplied by the current time delta. This means that if this method is called once per frame with the parameter {@code x}
      * the actor will in sum turn {@code x} degrees per second, independent of the framerate.
@@ -442,12 +350,9 @@ public abstract class AdvancedActor extends Actor implements Serializable {
     }
     
     
-    
-    
-    
-    
+
     //smooth movement
-    
+
     /**
      * Moves the actor the specified distance.
      * 
@@ -480,7 +385,7 @@ public abstract class AdvancedActor extends Actor implements Serializable {
         move(movement.location);
         turn(movement.rotation);
     }
-    
+
     /**
      * Moves the actor the specified number of pixels parallel to the x axis.
      * 
@@ -498,7 +403,7 @@ public abstract class AdvancedActor extends Actor implements Serializable {
     public void moveY(double distance){
         move(Vector2D.angledVector(90, distance));
     }
-    
+
     /**
      * Moves the whole distance step by step, executing {@code onStep(int)} with the current number of steps
      * as parameter. If {@code onStep()} does not return {@code true}, the movement will be abbored.
@@ -534,8 +439,9 @@ public abstract class AdvancedActor extends Actor implements Serializable {
     public Vector2D moveInSteps(double distance, double stepSize){
         return moveInSteps(Vector2D.angledVector(transform.rotation, distance), stepSize);
     }
-    
-    
+
+
+
     /**
      * Moves the actor to the specified x coordinate.
      * 
@@ -553,11 +459,12 @@ public abstract class AdvancedActor extends Actor implements Serializable {
     public void setY(double y){
         setLocation(new Vector2D(transform.location.y(), y));
     }
-    
+
     @Override
     public void setLocation(int x, int y){
         setLocation((double)x, (double)y);
     }
+
     /**
      * Moves the actor to the specified x and y coordinate. While floating point values may not be visible, they will be saved.
      * 
@@ -579,22 +486,21 @@ public abstract class AdvancedActor extends Actor implements Serializable {
     }
 
     /**
-     * Moves the actor to the location of the specified actor. If that actor is an advanced actor, also floating point
+     * Moves the actor to the location of the specified actor. If that actor is an CoreActor, also floating point
      * location will be transfered.
      * 
      * @param toActorsLocation The actor to move to
      */
     public void setLocation(Actor toActorsLocation) {
-        if(toActorsLocation instanceof AdvancedActor) setLocation(((AdvancedActor)toActorsLocation).getLocation());
+        if(toActorsLocation instanceof CoreActor) setLocation(((CoreActor)toActorsLocation).getLocation());
         else setLocation(toActorsLocation.getX(), toActorsLocation.getY());
     }
-    
-    
+
     @Override
     public void setRotation(int angle){
         setRotation((double)angle);
     }
-    
+
     /**
      * Sets the rotations of the actor. While floating point values may not be visible, they will be saved.
      * 
@@ -604,11 +510,12 @@ public abstract class AdvancedActor extends Actor implements Serializable {
         transform.rotation = angle;
         updateTransform();
     }
-    
+
     @Override
     public void turn(int angle){
         turn((double)angle);
     }
+
     /**
      * Turns the actor the specified amount of degrees.
      * 
@@ -632,30 +539,12 @@ public abstract class AdvancedActor extends Actor implements Serializable {
      * Actually updates the actors location and, if needed, the colliders locaiton.
      */
     protected void updateTransform(){
-        initialSetLocation((int)(transform.location.x() + 0.5), (int)(transform.location.y() + 0.5));
-        initialSetRotation((int)(transform.rotation + 0.5));
-        Collider collider = getCollider();
-        if(collider != null){
-            getCollider().setLocation((int)(transform.location.x() + 0.5), (int)(transform.location.y() + 0.5));
-            getCollider().setRotation((int)(transform.rotation + 0.5));
-        }
+        super.setLocation((int)(transform.location.x() + 0.5), (int)(transform.location.y() + 0.5));
+        super.setRotation((int)(transform.rotation + 0.5));
     }
 
-    public final void initialSetLocation(int x, int y){
-        super.setLocation(x, y);
-    }
-    public final void initialSetRotation(int rotation){
-        super.setRotation(rotation);
-    }
-    public final int initialGetX(){
-        return super.getX();
-    }
-    public final int initialGetY(){
-        return super.getY();
-    }
-    
-    
-    
+
+
     @Override
     public int getX(){
         return (int)x();
@@ -674,7 +563,7 @@ public abstract class AdvancedActor extends Actor implements Serializable {
     public double x(){
         return transform.location.x();
     }
-    
+
     /**
      * Returns the exact y coordinate of the actor.
      * 
@@ -692,7 +581,7 @@ public abstract class AdvancedActor extends Actor implements Serializable {
     public Vector2D getLocation(){
         return new Vector2D(transform.location);
     }
-    
+
     @Override
     public int getRotation(){
         return (int)getAngle();
@@ -706,7 +595,7 @@ public abstract class AdvancedActor extends Actor implements Serializable {
     public double getAngle(){
         return transform.rotation;
     }
-    
+
     /**
      * Returns the transform of this actor.
      * 
@@ -715,20 +604,6 @@ public abstract class AdvancedActor extends Actor implements Serializable {
     public Transform2D getTransform(){
         return new Transform2D(transform);
     }
-    
-    /**
-     * Returns the collider of this actor. If there is no, this will return {@code null}.
-     * If there is a collider used, it will be made sure, that it is in the
-     * world and at the correct location.
-     * 
-     * @return The collider of this advanced actor
-     */
-    public Collider getCollider(){
-        if(collider == null) return null;
-        return collider.get();
-    }
-
-
 
 
 
@@ -740,48 +615,47 @@ public abstract class AdvancedActor extends Actor implements Serializable {
      * @param mouse The action to add
      * @return This object
      */
-    public AdvancedActor addClickAction(Consumer<MouseInfo> mouse) {
-        if(mouse == null) return this;
-        clickActions.add(mouse);
+    public CoreActor addClickAction(Runnable action) {
+        if(action == null) return this;
+        clickActions.add(action);
         return this;
     }
 
-    public AdvancedActor addPressAction(Consumer<MouseInfo> mouse) {
-        // TODO: Use Input.MouseState
-        if(mouse == null) return this;
-        pressActions.add(mouse);
+    public CoreActor addPressAction(Runnable action) {
+        if(action == null) return this;
+        pressActions.add(action);
         return this;
     }
     
-    public AdvancedActor addReleaseAction(Consumer<MouseInfo> mouse) {
-        if(mouse == null) return this;
-        releaseActions.add(mouse);
+    public CoreActor addReleaseAction(Runnable action) {
+        if(action == null) return this;
+        releaseActions.add(action);
         return this;
     }
 
-    public AdvancedActor removeClickAction(Consumer<MouseInfo> action) {
+    public CoreActor removeClickAction(Runnable action) {
         clickActions.remove(action);
         return this;
     }
 
-    public AdvancedActor removePressAction(Consumer<MouseInfo> action) {
+    public CoreActor removePressAction(Runnable action) {
         pressActions.remove(action);
         return this;
     }
 
-    public AdvancedActor removeReleaseAction(Consumer<MouseInfo> action) {
+    public CoreActor removeReleaseAction(Runnable action) {
         releaseActions.remove(action);
         return this;
     }
 
     
-    public AdvancedActor addAddedAction(Consumer<World> world) {
+    public CoreActor addAddedAction(Consumer<World> world) {
         if(world == null) return this;
         addedToWorldActions.add(world);
         return this;
     }
 
-    public AdvancedActor removeAddedAction(Consumer<World> action) {
+    public CoreActor removeAddedAction(Consumer<World> action) {
         addedToWorldActions.remove(action);
         return this;
     }
@@ -789,7 +663,7 @@ public abstract class AdvancedActor extends Actor implements Serializable {
 
 
     /**
-     * Sets the time scale for all advanced actors in the current world to the specified factor.
+     * Sets the time scale for all CoreActors in the current world to the specified factor.
      * 
      * @see #setTimeScale(World, double)
      * @param scale The scale of time to use
@@ -799,7 +673,7 @@ public abstract class AdvancedActor extends Actor implements Serializable {
     }
 
     /**
-     * Sets the time scale for all advanced actors in the given world to the specified factor. This has an impact on the
+     * Sets the time scale for all CoreActors in the given world to the specified factor. This has an impact on the
      * distance moved in the "fixed" methods:
      * <ul>
      * <li>If the scale is 1 (default), the actors will move with normal speed.
@@ -811,12 +685,12 @@ public abstract class AdvancedActor extends Actor implements Serializable {
      * All this only has an effect on the "fixed" methods
      * 
      * @see #fixedMove(Vector2D)
-     * @param world The world to change the advanced actors time scale in
+     * @param world The world to change the CoreActors time scale in
      * @param scale The scale of time to use
      */
     public static void setTimeScale(World world, double scale){
         if(world == null) return;
-        for(AdvancedActor a : world.getObjects(AdvancedActor.class)){
+        for(CoreActor a : world.getObjects(CoreActor.class)){
             a.time.timeScale = scale;
         }
     }
