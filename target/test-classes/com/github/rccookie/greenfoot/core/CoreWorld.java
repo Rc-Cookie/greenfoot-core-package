@@ -83,11 +83,10 @@ public abstract class CoreWorld extends World {
      * @param x The x coordinate to add the object
      * @param y The y coordinate to add the object
      */
-    public void addObject(CoreActor object, double x, double y) {
-        Objects.requireNonNull(object);
+    public void addObject(Actor object, double x, double y) {
         if(object.getWorld() == this) return;
         super.addObject(object, 0, 0);
-        if(object != null) object.setLocation(x, y);
+        if(object instanceof CoreActor) ((CoreActor)object).setLocation(x, y);
     }
 
     /**
