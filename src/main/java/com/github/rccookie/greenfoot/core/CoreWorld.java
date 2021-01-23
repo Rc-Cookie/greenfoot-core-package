@@ -2,8 +2,10 @@ package com.github.rccookie.greenfoot.core;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import com.github.rccookie.common.event.Time;
+import com.github.rccookie.common.util.Console;
 
 import greenfoot.Actor;
 import greenfoot.World;
@@ -20,11 +22,18 @@ import greenfoot.World;
  */
 public abstract class CoreWorld extends World {
 
+    private static boolean initialized = false;
+    static {
+        initializeConsole();
+    }
+
     /**
      * An instance of {@link Time} that is automatically being
      * updated.
      */
     protected final Time time = new Time();
+
+
 
     /**
      * Constructs a new CoreWorld with the specified dimensions,
@@ -85,7 +94,7 @@ public abstract class CoreWorld extends World {
      */
     public void addObject(Actor object, double x, double y) {
         if(object.getWorld() == this) return;
-        super.addObject(object, 0, 0);
+        super.addObject(object, (int)x, (int)y);
         if(object instanceof CoreActor) ((CoreActor)object).setLocation(x, y);
     }
 
@@ -126,7 +135,7 @@ public abstract class CoreWorld extends World {
      * @param <A> The type of actor
      * @param cls The class of actor
      * @return An optional containing an actor of the specified class, if
-     *         there was any in the world
+     *         there is any in the world
      */
     public <A> Optional<A> find(Class<A> cls) {
         return getObjects(cls).stream().findAny();
@@ -141,10 +150,24 @@ public abstract class CoreWorld extends World {
      *           {@link CoreActor#setId(String)}
      * @param cls The class of actor
      * @return An optional containing an CoreActor of the specified class and
-     *         with the specified id, if there were any in the world
+     *         with the specified id, if there is any in the world
      */
     public <A> Optional<A> find(String id, Class<A> cls) {
-        return getObjects(cls).stream().filter(a -> a instanceof CoreActor && Objects.equals(id, ((CoreActor)a).getId())).findAny();
+        return find(cls, a -> a instanceof CoreActor && Objects.equals(id, ((CoreActor)a).getId()));
+    }
+
+    /**
+     * Returns an optional Object of the given class that meets the specified
+     * requirement and is in this world.
+     * 
+     * @param <A> The type of actor
+     * @param cls The class of actor
+     * @param requirement The requirement that the object returned must meet
+     * @return An optional containing an actor that meets the requirements if
+     *         there is any in the world
+     */
+    public <A> Optional<A> find(Class<A> cls, Predicate<A> requirement) {
+        return getObjects(cls).stream().filter(requirement).findAny();
     }
 
 
@@ -159,6 +182,19 @@ public abstract class CoreWorld extends World {
     public void setTimeScale(double scale) {
         time.timeScale = scale;
         for(CoreActor a : getObjects(CoreActor.class)) a.time.timeScale = scale;
+    }
+
+
+
+    /**
+     * Initializes console settings.
+     */
+    static final void initializeConsole() {
+        if(initialized) return;
+        initialized = true;
+        Console.Config.coloredOutput = false;
+        Console.Config.manualConsoleWidth = 60;
+        System.setErr(Console.CONSOLE_ERROR_STREAM);
     }
 
 

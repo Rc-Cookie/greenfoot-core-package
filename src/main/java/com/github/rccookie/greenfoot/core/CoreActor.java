@@ -43,6 +43,10 @@ import com.github.rccookie.common.event.Time;
 @JsonSerializable
 public abstract class CoreActor extends Actor {
 
+    static {
+        CoreWorld.initializeConsole();
+    }
+
     /**
      * The location of the actor stored in double coordinates.
      */
@@ -523,6 +527,33 @@ public abstract class CoreActor extends Actor {
      */
     public void turn(double angle){
         setRotation(transform.rotation + angle);
+    }
+
+    /**
+     * Turn this actor facing towards the given target.
+     * 
+     * @param target The CoreActor to look at
+     */
+    public void turnTowards(CoreActor target) {
+        turnTowards(target.getLocation());
+    }
+
+    /**
+     * Turn this actor facing towards the given target.
+     * 
+     * @param target The location to look at
+     */
+    public void turnTowards(Vector2D target) {
+        setRotation(Vector2D.between(getLocation(), target).angle());
+    }
+
+    /**
+     * Turn this actor facing towards the given target.
+     * 
+     * @param target The actor to look at
+     */
+    public void turnTowards(Actor target) {
+        turnTowards(target.getX(), target.getY());
     }
 
     /**
