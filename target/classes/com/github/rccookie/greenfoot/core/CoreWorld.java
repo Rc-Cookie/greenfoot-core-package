@@ -1,8 +1,10 @@
 package com.github.rccookie.greenfoot.core;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import com.github.rccookie.common.event.Time;
 import com.github.rccookie.common.util.Console;
@@ -146,13 +148,13 @@ public abstract class CoreWorld extends World {
      * id from this world.
      * 
      * @param <A> The type of actor
+     * @param cls The class of actor
      * @param id The id of the CoreActor, as specified using
      *           {@link CoreActor#setId(String)}
-     * @param cls The class of actor
      * @return An optional containing an CoreActor of the specified class and
      *         with the specified id, if there is any in the world
      */
-    public <A> Optional<A> find(String id, Class<A> cls) {
+    public <A> Optional<A> find(Class<A> cls, String id) {
         return find(cls, a -> a instanceof CoreActor && Objects.equals(id, ((CoreActor)a).getId()));
     }
 
@@ -168,6 +170,30 @@ public abstract class CoreWorld extends World {
      */
     public <A> Optional<A> find(Class<A> cls, Predicate<A> requirement) {
         return getObjects(cls).stream().filter(requirement).findAny();
+    }
+
+    /**
+     * Returns all actors from this world that meet the given requirement.
+     * 
+     * @param requirement The requirement an actor must meet to be contained
+     *                    in the returned list
+     * @return A list of all actors in this world that meet the requirement
+     */
+    public List<Actor> findAll(Predicate<Actor> requirement) {
+        return findAll(Actor.class, requirement);
+    }
+
+    /**
+     * Returns all objects of the specified class from this world that meet
+     * the given requirement.
+     * 
+     * @param <A> The type of object to find
+     * @param requirement The requirement an object must meet to be contained
+     *                    in the returned list
+     * @return A list of all objects in this world that meet the requirement
+     */
+    public <A> List<A> findAll(Class<A> cls, Predicate<A> requirement) {
+        return getObjects(cls).stream().filter(requirement).collect(Collectors.toList());
     }
 
 
