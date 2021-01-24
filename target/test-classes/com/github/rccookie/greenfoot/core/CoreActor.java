@@ -151,6 +151,20 @@ public abstract class CoreActor extends Actor {
 
 
     /**
+     * Returns an optional graphically intersecting actor of the given class.
+     * 
+     * @param <A> The type of actor to find
+     * @param clazz The class of the actor to find
+     * @return An optional containing an intersecting actor of the given class, or empty
+     */
+    @SuppressWarnings("unchecked")
+    protected <A> Optional<A> findIntersecting(Class<A> clazz) {
+        return Optional.ofNullable((A)getOneIntersectingObject(clazz));
+    }
+
+
+
+    /**
      * Called whenever the mouse clicked onto this object (released the mouse on the object after it had been pressed down on it).
      * 
      * @param mouse Information about the mouse that clicked onto the object
