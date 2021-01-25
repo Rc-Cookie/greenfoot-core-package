@@ -184,6 +184,18 @@ public abstract class CoreWorld extends World {
     }
 
     /**
+     * Returns all CoreActors of this world with the given id.
+     * 
+     * @param <A> The type of object to find
+     * @param cls The class of object to find
+     * @param id The id of the CoreActors to find
+     * @return A list of CoreActors of the specified class with the given id
+     */
+    public <A> List<A> findAll(Class<A> cls, String id) {
+        return findAll(cls, a -> a instanceof CoreActor && Objects.equals(id, ((CoreActor)a).getId()));
+    }
+
+    /**
      * Returns all objects of the specified class from this world that meet
      * the given requirement.
      * 
