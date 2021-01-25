@@ -17,6 +17,7 @@ import com.github.rccookie.greenfoot.core.CoreActor;
 import com.github.rccookie.common.geometry.Transform2D;
 import com.github.rccookie.common.geometry.Vector;
 import com.github.rccookie.common.geometry.Vector2D;
+import com.github.rccookie.common.util.Updatable;
 import com.github.rccookie.greenfoot.event.Input;
 import com.github.rccookie.common.data.json.JsonField;
 import com.github.rccookie.common.data.json.JsonSerializable;
@@ -38,12 +39,11 @@ import com.github.rccookie.common.event.Time;
  * @version 1.1
  * @see Actor
  * @see Time
- * @see Collider
  * @see Vector2D
  * @see Transform2D
  */
 @JsonSerializable
-public abstract class CoreActor extends Actor {
+public abstract class CoreActor extends Actor implements Updatable {
 
     static {
         CoreWorld.initializeConsole();
@@ -78,7 +78,7 @@ public abstract class CoreActor extends Actor {
 
     private String id = null;
 
-
+    private final List<Runnable> updateListeners = new ArrayList<>();
 
     private final List<Runnable> clickActions = new ArrayList<>();
     private final List<Runnable> pressActions = new ArrayList<>();
@@ -91,7 +91,10 @@ public abstract class CoreActor extends Actor {
     /**
      * Constructs a new CoreActor.
      */
-    public CoreActor() { }
+    public CoreActor() {
+        addUpdateListener(() -> ((NoExternalUpdateTime)time).actualUpdate());
+        addUpdateListener(() -> fixedMove(velocity));
+    }
 
     /**
      * This method cannot be overridden as it is neccecary for the CoreActor to function. Instead, the method {@code addedIntoWorld(greenfoot.World)}
@@ -119,7 +122,7 @@ public abstract class CoreActor extends Actor {
      */
     public final void act(){
         earlyUpdate();
-        internalAct();
+        internalUpdate();
         update();
         physicsUpdate();
         lateUpdate();
@@ -135,6 +138,7 @@ public abstract class CoreActor extends Actor {
      * Called once per frame.
      * <p>The default implementation does nothing.
      */
+    @Override
     public void update() { }
 
     /**
@@ -251,10 +255,9 @@ public abstract class CoreActor extends Actor {
     /**
      * Does some stuff necessary to function.
      */
-    private void internalAct() {
-        handleTimeInstance();
+    private void internalUpdate() {
         handleMouseInteractions();
-        handleMovement();
+        handleUpdateListeners();
     }
 
     private void handleMouseInteractions() {
@@ -264,12 +267,8 @@ public abstract class CoreActor extends Actor {
         else if(pressed && Greenfoot.mouseClicked(null)) onRelease();
     }
 
-    private void handleMovement() {
-        fixedMove(velocity);
-    }
-
-    private void handleTimeInstance(){
-        ((NoExternalUpdateTime)time).actualUpdate();
+    private void handleUpdateListeners() {
+        for(Runnable listener : updateListeners) listener.run();
     }
 
 
@@ -744,6 +743,23 @@ public abstract class CoreActor extends Actor {
 
     public CoreActor removeAddedAction(Consumer<World> action) {
         addedToWorldActions.remove(action);
+        return this;
+    }
+
+
+    public CoreActor addUpdateListener(Runnable listener) {
+        if(listener == null) return this;
+        updateListeners.add(listener);
+        return this;
+    }
+
+    public CoreActor addUpdatable(Updatable updatable) {
+        if(updatable == null) return this;
+        return addUpdateListener(() -> updatable.update());
+    }
+
+    public CoreActor removeUpdateListener(Runnable listener) {
+        updateListeners.remove(listener);
         return this;
     }
 
