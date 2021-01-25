@@ -2,6 +2,7 @@ package com.github.rccookie.greenfoot.core;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -14,6 +15,7 @@ import greenfoot.World;
 
 import com.github.rccookie.greenfoot.core.CoreActor;
 import com.github.rccookie.common.geometry.Transform2D;
+import com.github.rccookie.common.geometry.Vector;
 import com.github.rccookie.common.geometry.Vector2D;
 import com.github.rccookie.greenfoot.event.Input;
 import com.github.rccookie.common.data.json.JsonField;
@@ -54,9 +56,22 @@ public abstract class CoreActor extends Actor {
     protected Transform2D transform = new Transform2D();
 
     /**
+     * The velocity of the actor.
+     */
+    private Vector velocity = new Vector2D();
+
+    /**
      * The time object of this actor. It is updated once per frame and can be accessed by extending classes.
      */
-    protected final Time time = new Time();
+    protected final Time time = new NoExternalUpdateTime();
+
+    private class NoExternalUpdateTime extends Time {
+        @Override
+        public void update() { }
+        void actualUpdate() {
+            super.update();
+        }
+    }
 
     private boolean hovered = false;
     private boolean pressed = false;
@@ -107,7 +122,6 @@ public abstract class CoreActor extends Actor {
         internalAct();
         update();
         physicsUpdate();
-        timeUpdate();
         lateUpdate();
     }
     
@@ -237,15 +251,25 @@ public abstract class CoreActor extends Actor {
     /**
      * Does some stuff necessary to function.
      */
-    private void internalAct(){
+    private void internalAct() {
+        handleTimeInstance();
+        handleMouseInteractions();
+        handleMovement();
+    }
+
+    private void handleMouseInteractions() {
         MouseInfo mouse = Input.mouseInfo();
         hovered = mouse != null ? ActorVisitor.containsPoint(this, mouse.getX() * getWorld().getCellSize(), mouse.getY() * getWorld().getCellSize()) : false;
         if(hovered && Greenfoot.mousePressed(this)) onPress();
         else if(pressed && Greenfoot.mouseClicked(null)) onRelease();
     }
 
-    private void timeUpdate(){
-        time.update();
+    private void handleMovement() {
+        fixedMove(velocity);
+    }
+
+    private void handleTimeInstance(){
+        ((NoExternalUpdateTime)time).actualUpdate();
     }
 
 
@@ -282,9 +306,8 @@ public abstract class CoreActor extends Actor {
      * 
      * @param movement The distance to movee in pixels/second
      */
-    public void fixedMove(Vector2D movement){
-        movement = new Vector2D(movement).scale(time.deltaTime());
-        move(movement);
+    public void fixedMove(Vector movement) {
+        move(movement.scaled(time.deltaTime()));
     }
 
     /**
@@ -339,7 +362,7 @@ public abstract class CoreActor extends Actor {
      * @param stepSize The size of each step
      * @return The vector that describes the move that actually happened
      */
-    public Vector2D fixedMoveInSteps(Vector2D movement, double stepSize){
+    public Vector2D fixedMoveInSteps(Vector movement, double stepSize){
         movement = new Vector2D(movement).scale(time.deltaTime());
         return moveInSteps(movement, stepSize);
     }
@@ -376,7 +399,7 @@ public abstract class CoreActor extends Actor {
      * 
      * @param movement The vector that describes the movement of the actor
      */
-    public void move(Vector2D movement){
+    public void move(Vector movement){
         setLocation(transform.location.add(movement));
     }
 
@@ -436,14 +459,14 @@ public abstract class CoreActor extends Actor {
      * @param stepSize The size of each step
      * @return The distance that was actually moved
      */
-    public Vector2D moveInSteps(Vector2D movement, double stepSize){
+    public Vector2D moveInSteps(Vector movement, double stepSize){
         for(double i=0; i<movement.abs()-stepSize; i+= stepSize){
             move(movement.normed().scale(stepSize));
             if(!onStep((int)(i / stepSize))) return Vector2D.angledVector(movement.angle(), i);
         }
         move(movement.normed().scale(movement.abs() % stepSize));
         if(!onStep((int)(movement.abs() / stepSize))) return Vector2D.angledVector(movement.angle(), (int)movement.abs());
-        return movement;
+        return movement.get2D();
     }
 
     /**
@@ -456,6 +479,25 @@ public abstract class CoreActor extends Actor {
      */
     public Vector2D moveInSteps(double distance, double stepSize){
         return moveInSteps(Vector2D.angledVector(transform.rotation, distance), stepSize);
+    }
+
+    /**
+     * Sets the velocity of this CoreActor.
+     * 
+     * @param velocity The new velocity for this actor. Must not be {@code null}
+     */
+    public void setVelocity(Vector velocity) {
+        Objects.requireNonNull(velocity);
+        this.velocity = new Vector2D(velocity);
+    }
+
+    /**
+     * Returns this CoreActor's velocity. Modifications to this vector <b>will</b> effect is!
+     * 
+     * @return This actor's velocity
+     */
+    public Vector velocity() {
+        return velocity;
     }
 
 
@@ -498,8 +540,8 @@ public abstract class CoreActor extends Actor {
      * 
      * @param location The new location of the actor
      */
-    public void setLocation(Vector2D location){
-        transform.location = location;
+    public void setLocation(Vector location){
+        transform.location = new Vector2D(location);
         updateTransform();
     }
 
@@ -557,8 +599,8 @@ public abstract class CoreActor extends Actor {
      * 
      * @param target The location to look at
      */
-    public void turnTowards(Vector2D target) {
-        setRotation(Vector2D.between(getLocation(), target).angle());
+    public void turnTowards(Vector target) {
+        setRotation(Vector2D.between(getLocation(), target.get2D()).angle());
     }
 
     /**
