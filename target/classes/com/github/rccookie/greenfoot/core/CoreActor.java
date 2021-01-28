@@ -183,6 +183,20 @@ public abstract class CoreActor extends Actor implements Updatable {
 
 
     /**
+     * Removes this object from its world, if it is in one.
+     * 
+     * @return Weather the object was in a world before
+     */
+    public boolean remove() {
+        World world = getWorld();
+        if(world == null) return false;
+        world.removeObject(this);
+        return true;
+    }
+
+
+
+    /**
      * Called whenever the mouse clicked onto this object (released the mouse on the object after it had been pressed down on it).
      * 
      * @param mouse Information about the mouse that clicked onto the object
