@@ -13,7 +13,7 @@ import greenfoot.Actor;
 import greenfoot.World;
 
 /**
- * An improced version of {@link World} which offers some
+ * An improved version of {@link World} which offers some
  * comveniance methods especially wo work with {@link CoreActor}.
  * It should be used as base class for custom world
  * implementations instead of greenfoot.World.
