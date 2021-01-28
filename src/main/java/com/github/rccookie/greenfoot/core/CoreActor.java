@@ -507,7 +507,7 @@ public abstract class CoreActor extends Actor implements Updatable {
      * @param x The new x coordinate
      */
     public void setX(double x){
-        setLocation(new Vector2D(x, transform.location.x()));
+        setLocation(new Vector2D(x, transform.location.y()));
     }
 
     /**
@@ -516,7 +516,7 @@ public abstract class CoreActor extends Actor implements Updatable {
      * @param y The new y coordinate
      */
     public void setY(double y){
-        setLocation(new Vector2D(transform.location.y(), y));
+        setLocation(new Vector2D(transform.location.x(), y));
     }
 
     @Override
