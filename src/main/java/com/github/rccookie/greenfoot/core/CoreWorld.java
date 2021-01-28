@@ -33,7 +33,7 @@ public abstract class CoreWorld extends World {
      * An instance of {@link Time} that is automatically being
      * updated.
      */
-    protected final Time time = new Time();
+    protected final Time time = new NoExternalUpdateTime();
 
 
 
@@ -132,6 +132,18 @@ public abstract class CoreWorld extends World {
 
 
     /**
+     * Finds an actor that meets the given requirement.
+     * 
+     * @param requirement The requirement the actor has to fulfill to be
+     *                    returned
+     * @return An optional containing an actor that fulfilles the requirement,
+     *         or an empty optional
+     */
+    public Optional<Actor> find(Predicate<Actor> requirement) {
+        return find(Actor.class, requirement);
+    }
+
+    /**
      * Returns an optional actor of the specified class from this world.
      * 
      * @param <A> The type of actor
@@ -211,6 +223,69 @@ public abstract class CoreWorld extends World {
 
 
     /**
+     * Returns weather this world contains an actor that meets the given requirement.
+     * 
+     * @param requirement The requirement the actor has to meet
+     * @return {@code true} if there is at least one actor in the world that meets
+     *         the requirement
+     */
+    public boolean contains(Predicate<Actor> requirement) {
+        return find(requirement).isPresent();
+    }
+
+    /**
+     * Returns weather this world contains an actor of the given class.
+     * 
+     * @param <A> The type of actor to check for
+     * @param cls The class of actor to check for
+     * @return {@code true} if there is at least one actor in the world of that class
+     */
+    public <A> boolean contains(Class<A> cls) {
+        return find(cls).isPresent();
+    }
+
+    /**
+     * Returns weather this world contains a CoreActor of the given class that has
+     * the given id.
+     * 
+     * @param <A> The type of CoreActor to check for
+     * @param cls The classs of CoreActor to check for
+     * @param id The id to check for
+     * @return {@code true} if this world contains at least one CoreActor of the given
+     *         class with the specified id
+     */
+    public <A> boolean contains(Class<A> cls, String id) {
+        return find(cls, id).isPresent();
+    }
+
+    /**
+     * Returns weather this world contains an actor of the given class that meets the
+     * specified requirement.
+     * 
+     * @param <A> The type of actor to check for
+     * @param cls The class of actor to check for
+     * @param requirement The requirement that the actor must meet
+     * @return {@code true} of this world contains at least one actor of the given
+     *         class that meets the requirement
+     */
+    public <A> boolean contains(Class<A> cls, Predicate<A> requirement) {
+        return find(cls, requirement).isPresent();
+    }
+
+    /**
+     * Returns weather this world contains a CoreActor with the given id.
+     * 
+     * @param id The id to check for
+     * @return {@code true} if this world contains at least one CoreActor with the
+     * specified id
+     */
+    public boolean contains(String id) {
+        return contains(CoreActor.class, id);
+    }
+
+
+
+    /**
      * Sets the time scale for this world and all its CoreActors. You can always
      * modify the time scale of the world exclusively by modifying the
      * {@link Time#timeScale} field of {@link #time}.
@@ -248,7 +323,7 @@ public abstract class CoreWorld extends World {
     }
 
     private void internalAct() {
-        time.update();
+        ((NoExternalUpdateTime)time).actualUpdate();
     }
 
     /**

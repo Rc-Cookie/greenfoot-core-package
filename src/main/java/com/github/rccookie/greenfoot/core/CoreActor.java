@@ -65,13 +65,7 @@ public abstract class CoreActor extends Actor implements Updatable {
      */
     protected final Time time = new NoExternalUpdateTime();
 
-    private class NoExternalUpdateTime extends Time {
-        @Override
-        public void update() { }
-        void actualUpdate() {
-            super.update();
-        }
-    }
+
 
     private boolean hovered = false;
     private boolean pressed = false;
