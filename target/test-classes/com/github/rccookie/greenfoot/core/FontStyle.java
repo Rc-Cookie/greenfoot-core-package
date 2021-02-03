@@ -48,11 +48,10 @@ public abstract class FontStyle extends Font {
     }
 
     public static final FontStyle monospace(int size, boolean bold, boolean italic) {
-        System.out.println("Is online: " + IS_ONLINE);
         return new FontStyle("Consolas", bold, italic, size, 0.2) {
             @Override
             protected double getCharWidth(char c) {
-                return IS_ONLINE ? 0.5 : 0.567;
+                return IS_ONLINE ? 0.54 : 0.567;
             }
         };
     }
