@@ -35,13 +35,17 @@ public abstract class CoreWorld extends World {
     static {
         boolean isOnline = false;
         // Simple test that will throw an exception when online due to missing class
-        // If offline this will do nothing
+        // If offline this will do nothing else than some console settings
         try {
-            System.setErr(System.err);
+            System.setErr(Console.CONSOLE_ERROR_STREAM);
         } catch(Exception e) {
             isOnline = true;
+            System.out.println("Online session (Exception)");
+            e.printStackTrace();
         } catch(Error e) {
             isOnline = true;
+            System.out.println("Online session (Error)");
+            e.printStackTrace();
         }
         IS_ONLINE = isOnline;
     }
