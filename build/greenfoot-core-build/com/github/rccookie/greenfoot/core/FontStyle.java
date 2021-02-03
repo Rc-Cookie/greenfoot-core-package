@@ -51,7 +51,7 @@ public abstract class FontStyle extends Font {
         return new FontStyle("Consolas", bold, italic, size, 0.2) {
             @Override
             protected double getCharWidth(char c) {
-                return IS_ONLINE ? 0.54 : 0.567;
+                return IS_ONLINE ? 0.55 : 0.567;
             }
         };
     }
@@ -66,6 +66,9 @@ public abstract class FontStyle extends Font {
         return new FontStyle("Segoe UI", bold, italic, size, 0.38) {
             @Override
             protected double getCharWidth(char c) {
+                return getNormalCharWidth(c) * (IS_ONLINE ? 1.025 : 1);
+            }
+            private double getNormalCharWidth(char c) {
                 // I know that switch exists but its ugly in Java 11
                 if(bold) {
                     if(c == ' ') return 0.3; // is actually bigger
@@ -242,11 +245,11 @@ public abstract class FontStyle extends Font {
                 if(c == '-') return 0.4;
                 if(c == '_') return 0.4;
                 if(c == '"') return 0.4;
-                if(c == '\'') return 0.25;
+                if(c == '\'')return 0.25;
                 if(c == '%') return 0.8;
                 if(c == '&') return 0.8;
                 if(c == '/') return 0.4;
-                if(c == '\\') return 0.4;
+                if(c == '\\')return 0.4;
                 if(c == '(') return 0.3;
                 if(c == ')') return 0.3;
                 if(c == '[') return 0.3;

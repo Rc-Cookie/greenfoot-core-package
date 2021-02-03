@@ -14,10 +14,12 @@ public abstract class FontStyle extends Font {
     public static final boolean IS_ONLINE = CoreWorld.IS_ONLINE;
 
     private final double newLineDim;
+    private final double onlineScale;
 
-    private FontStyle(String name, boolean bold, boolean italic, int size, double newLineDim) {
+    private FontStyle(String name, boolean bold, boolean italic, int size, double newLineDim, double onlineScale) {
         super(name, bold, italic, size);
         this.newLineDim = newLineDim;
+        this.onlineScale = IS_ONLINE ? onlineScale : 1;
     }
 
     public int getWidth(String string) {
@@ -29,7 +31,7 @@ public abstract class FontStyle extends Font {
                 if(current > maxWidth) maxWidth = (int)current;
                 current = 0;
             }
-            else current += getCharWidth(c) * getSize();
+            else current += getCharWidth(c) * getSize() * onlineScale;
         }
         return Math.max(maxWidth, (int)current);
     }
@@ -48,10 +50,10 @@ public abstract class FontStyle extends Font {
     }
 
     public static final FontStyle monospace(int size, boolean bold, boolean italic) {
-        return new FontStyle("Consolas", bold, italic, size, 0.2) {
+        return new FontStyle("Consolas", bold, italic, size, 0.2, 0.97) {
             @Override
             protected double getCharWidth(char c) {
-                return IS_ONLINE ? 0.54 : 0.567;
+                return IS_ONLINE ? 0.55 : 0.567;
             }
         };
     }
@@ -63,7 +65,7 @@ public abstract class FontStyle extends Font {
     }
 
     public static final FontStyle modern(int size, boolean bold, boolean italic) {
-        return new FontStyle("Segoe UI", bold, italic, size, 0.38) {
+        return new FontStyle("Segoe UI", bold, italic, size, 0.38, 1.025) {
             @Override
             protected double getCharWidth(char c) {
                 // I know that switch exists but its ugly in Java 11
@@ -242,11 +244,11 @@ public abstract class FontStyle extends Font {
                 if(c == '-') return 0.4;
                 if(c == '_') return 0.4;
                 if(c == '"') return 0.4;
-                if(c == '\'') return 0.25;
+                if(c == '\'')return 0.25;
                 if(c == '%') return 0.8;
                 if(c == '&') return 0.8;
                 if(c == '/') return 0.4;
-                if(c == '\\') return 0.4;
+                if(c == '\\')return 0.4;
                 if(c == '(') return 0.3;
                 if(c == ')') return 0.3;
                 if(c == '[') return 0.3;
