@@ -14,10 +14,12 @@ public abstract class FontStyle extends Font {
     public static final boolean IS_ONLINE = CoreWorld.IS_ONLINE;
 
     private final double newLineDim;
+    private final double onlineScale;
 
-    private FontStyle(String name, boolean bold, boolean italic, int size, double newLineDim) {
+    private FontStyle(String name, boolean bold, boolean italic, int size, double newLineDim, double onlineScale) {
         super(name, bold, italic, size);
         this.newLineDim = newLineDim;
+        this.onlineScale = IS_ONLINE ? onlineScale : 1;
     }
 
     public int getWidth(String string) {
@@ -31,7 +33,7 @@ public abstract class FontStyle extends Font {
             }
             else current += getCharWidth(c) * getSize();
         }
-        return Math.max(maxWidth, (int)current);
+        return (int)(Math.max(maxWidth, current) * onlineScale);
     }
 
     protected abstract double getCharWidth(char c);
@@ -48,10 +50,10 @@ public abstract class FontStyle extends Font {
     }
 
     public static final FontStyle monospace(int size, boolean bold, boolean italic) {
-        return new FontStyle("Consolas", bold, italic, size, 0.2) {
+        return new FontStyle("Consolas", bold, italic, size, 0.2, 0.975) {
             @Override
             protected double getCharWidth(char c) {
-                return IS_ONLINE ? 0.55 : 0.567;
+                return 0.567;
             }
         };
     }
@@ -63,12 +65,9 @@ public abstract class FontStyle extends Font {
     }
 
     public static final FontStyle modern(int size, boolean bold, boolean italic) {
-        return new FontStyle("Segoe UI", bold, italic, size, 0.38) {
+        return new FontStyle("Segoe UI", bold, italic, size, 0.38, 1.025) {
             @Override
             protected double getCharWidth(char c) {
-                return getNormalCharWidth(c) * (IS_ONLINE ? 1.025 : 1);
-            }
-            private double getNormalCharWidth(char c) {
                 // I know that switch exists but its ugly in Java 11
                 if(bold) {
                     if(c == ' ') return 0.3; // is actually bigger

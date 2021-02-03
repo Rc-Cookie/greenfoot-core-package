@@ -31,9 +31,9 @@ public abstract class FontStyle extends Font {
                 if(current > maxWidth) maxWidth = (int)current;
                 current = 0;
             }
-            else current += getCharWidth(c) * getSize() * onlineScale;
+            else current += getCharWidth(c) * getSize();
         }
-        return Math.max(maxWidth, (int)current);
+        return (int)(Math.max(maxWidth, current) * onlineScale);
     }
 
     protected abstract double getCharWidth(char c);
@@ -50,10 +50,10 @@ public abstract class FontStyle extends Font {
     }
 
     public static final FontStyle monospace(int size, boolean bold, boolean italic) {
-        return new FontStyle("Consolas", bold, italic, size, 0.2, 0.97) {
+        return new FontStyle("Consolas", bold, italic, size, 0.2, 0.975) {
             @Override
             protected double getCharWidth(char c) {
-                return IS_ONLINE ? 0.55 : 0.567;
+                return 0.567;
             }
         };
     }
