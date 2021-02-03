@@ -45,6 +45,15 @@ import com.github.rccookie.common.event.Time;
 @JsonSerializable
 public abstract class CoreActor extends Actor implements Updatable {
 
+    /**
+     * Indicates weather the current session is online or on the Greenfoot application.
+     * Offline the code runs plain java ansuring that any java functionallity will work.
+     * Online however the code gets converted to javascript which is not very reliable
+     * and does not have all classes that java has. Therefore special handling when
+     * operating online max be helpful or neccecary.
+     */
+    public static final boolean IS_ONLINE = CoreWorld.IS_ONLINE;
+
     static {
         CoreWorld.initializeConsole();
     }

@@ -24,6 +24,26 @@ import greenfoot.World;
  */
 public abstract class CoreWorld extends World {
 
+    /**
+     * Indicates weather the current session is online or on the Greenfoot application.
+     * Offline the code runs plain java ansuring that any java functionallity will work.
+     * Online however the code gets converted to javascript which is not very reliable
+     * and does not have all classes that java has. Therefore special handling when
+     * operating online max be helpful or neccecary.
+     */
+    public static final boolean IS_ONLINE;
+    static {
+        boolean isOnline = false;
+        // Simple test that will throw an exception when online due to missing class
+        // If offline this will do nothing
+        try {
+            System.setErr(System.err);
+        } catch(Exception e) {
+            isOnline = true;
+        }
+        IS_ONLINE = isOnline;
+    }
+
     private static boolean initialized = false;
     static {
         initializeConsole();
@@ -300,19 +320,6 @@ public abstract class CoreWorld extends World {
 
 
     /**
-     * Initializes console settings.
-     */
-    static final void initializeConsole() {
-        if(initialized) return;
-        initialized = true;
-        Console.Config.coloredOutput = false;
-        Console.Config.manualConsoleWidth = 60;
-        System.setErr(Console.CONSOLE_ERROR_STREAM);
-    }
-
-
-
-    /**
      * This method is used internally by CoreWorld and can therefore not be used.
      * Override {@link #update()} instead.
      */
@@ -331,5 +338,18 @@ public abstract class CoreWorld extends World {
      */
     public void update() {
 
+    }
+
+
+
+    /**
+     * Initializes console settings.
+     */
+    static final void initializeConsole() {
+        if(initialized) return;
+        initialized = true;
+        Console.Config.coloredOutput = false;
+        Console.Config.manualConsoleWidth = 60;
+        if(!IS_ONLINE) System.setErr(Console.CONSOLE_ERROR_STREAM);
     }
 }

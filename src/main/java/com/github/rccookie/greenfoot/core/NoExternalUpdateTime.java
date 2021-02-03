@@ -3,7 +3,7 @@ package com.github.rccookie.greenfoot.core;
 import com.github.rccookie.common.event.Time;
 
 /**
- * A time that cannot me updated using {@link #update()} to
+ * A package-protected time that cannot me updated using {@link #update()} to
  * prevent unwanted updating. Use {@link #actualUpdate()} instead!
  */
 class NoExternalUpdateTime extends Time {
