@@ -43,6 +43,16 @@ public abstract class FontStyle extends Font {
         return getSize() * nLines + (int)(getSize() * (nLines - 1) * newLineDim);
     }
 
+    @Override
+    public FontStyle deriveFont(float size) {
+        return new FontStyle(getName(), isBold(), isItalic(), (int)size, newLineDim, onlineScale) {
+            @Override
+            protected double getCharWidth(char c) {
+                return FontStyle.this.getCharWidth(c);
+            }
+        };
+    }
+
 
 
     public static final FontStyle monospace(int size) {
