@@ -40,6 +40,8 @@ public abstract class CoreWorld extends World {
             System.setErr(System.err);
         } catch(Exception e) {
             isOnline = true;
+        } catch(Error e) {
+            isOnline = true;
         }
         IS_ONLINE = isOnline;
     }
@@ -350,18 +352,14 @@ public abstract class CoreWorld extends World {
         initialized = true;
         Console.Config.coloredOutput = false;
         Console.Config.manualConsoleWidth = 60;
-        if(!IS_ONLINE) System.setErr(Console.CONSOLE_ERROR_STREAM);
-    }
-
-
-    /**
-     * Indicates weather the current session is online or on the Greenfoot application.
-     * Offline the code runs plain java ansuring that any java functionallity will work.
-     * Online however the code gets converted to javascript which is not very reliable
-     * and does not have all classes that java has. Therefore special handling when
-     * operating online max be helpful or neccecary.
-     */
-    public static final boolean IS_ONLINE() {
-        return IS_ONLINE;
+        try {
+            System.setErr(Console.CONSOLE_ERROR_STREAM);
+        } catch(Exception e) {
+            System.out.println("Exception");
+            e.printStackTrace();
+        } catch(Error e) {
+            System.out.println("Error");
+            e.printStackTrace();
+        }
     }
 }

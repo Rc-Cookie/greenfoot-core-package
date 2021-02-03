@@ -40,6 +40,8 @@ public abstract class CoreWorld extends World {
             System.setErr(System.err);
         } catch(Exception e) {
             isOnline = true;
+        } catch(Error e) {
+            isOnline = true;
         }
         IS_ONLINE = isOnline;
     }
@@ -350,6 +352,14 @@ public abstract class CoreWorld extends World {
         initialized = true;
         Console.Config.coloredOutput = false;
         Console.Config.manualConsoleWidth = 60;
-        if(!IS_ONLINE) System.setErr(Console.CONSOLE_ERROR_STREAM);
+        try {
+            System.setErr(Console.CONSOLE_ERROR_STREAM);
+        } catch(Exception e) {
+            System.out.println("Exception");
+            e.printStackTrace();
+        } catch(Error e) {
+            System.out.println("Error");
+            e.printStackTrace();
+        }
     }
 }

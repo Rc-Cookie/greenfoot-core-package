@@ -140,7 +140,7 @@ public class Image extends GreenfootImage {
 
     public static Image text(String string, Color color, FontStyle font) {
         Image image = new Image(font.getWidth(string), font.getHeight(string));
-        //image.fill(Color.LIGHT_GRAY); // For debugging purposes
+        image.fill(Color.LIGHT_GRAY); // For debugging purposes
         image.drawString(string, 0, (int)(font.getSize() * 0.75), color, font);
         return image;
     }

@@ -4,6 +4,15 @@ import greenfoot.Font;
 
 public abstract class FontStyle extends Font {
 
+    /**
+     * Indicates weather the current session is online or on the Greenfoot application.
+     * Offline the code runs plain java ansuring that any java functionallity will work.
+     * Online however the code gets converted to javascript which is not very reliable
+     * and does not have all classes that java has. Therefore special handling when
+     * operating online max be helpful or neccecary.
+     */
+    public static final boolean IS_ONLINE = CoreWorld.IS_ONLINE;
+
     private final double newLineDim;
 
     private FontStyle(String name, boolean bold, boolean italic, int size, double newLineDim) {
@@ -39,10 +48,11 @@ public abstract class FontStyle extends Font {
     }
 
     public static final FontStyle monospace(int size, boolean bold, boolean italic) {
+        System.out.println("Is online: " + IS_ONLINE);
         return new FontStyle("Consolas", bold, italic, size, 0.2) {
             @Override
             protected double getCharWidth(char c) {
-                return 0.567;
+                return IS_ONLINE ? 0.5 : 0.567;
             }
         };
     }
