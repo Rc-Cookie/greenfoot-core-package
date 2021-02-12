@@ -6,11 +6,9 @@
 
   <groupId>com.github.rccookie</groupId>
   <artifactId>greenfoot-core</artifactId>
-  <version>2.1.1.1</version>
+  <version>2.1.1.2</version>
 
   <name>greenfoot-core</name>
-  <!-- FIXME change it to the project's website -->
-  <url>http://www.example.com</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -36,12 +34,12 @@
     <dependency>
       <groupId>com.github.rccookie</groupId>
       <artifactId>event</artifactId>
-      <version>1.0.0.1</version>
+      <version>1.0.1.0</version>
     </dependency>
     <dependency>
       <groupId>com.github.rccookie</groupId>
       <artifactId>greenfoot-event</artifactId>
-      <version>1.0.1.2</version>
+      <version>1.1.0.3</version>
     </dependency>
   </dependencies>
 
