@@ -7,7 +7,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import com.github.rccookie.common.event.Time;
-import com.github.rccookie.common.util.Console;
 
 import greenfoot.Actor;
 import greenfoot.World;
@@ -24,35 +23,8 @@ import greenfoot.World;
  */
 public abstract class CoreWorld extends World {
 
-    /**
-     * Indicates weather the current session is online or on the Greenfoot application.
-     * Offline the code runs plain java ansuring that any java functionallity will work.
-     * Online however the code gets converted to javascript which is not very reliable
-     * and does not have all classes that java has. Therefore special handling when
-     * operating online max be helpful or neccecary.
-     */
-    public static final boolean IS_ONLINE;
     static {
-        boolean isOnline = false;
-        // Simple test that will throw an exception when online due to missing class
-        // If offline this will do nothing else than some console settings
-        try {
-            System.setErr(Console.CONSOLE_ERROR_STREAM);
-        } catch(Exception e) {
-            isOnline = true;
-            System.out.println("Online session (Exception)");
-            e.printStackTrace();
-        } catch(Error e) {
-            isOnline = true;
-            System.out.println("Online session (Error)");
-            e.printStackTrace();
-        }
-        IS_ONLINE = isOnline;
-    }
-
-    private static boolean initialized = false;
-    static {
-        initializeConsole();
+        Core.initializeConsole();
     }
 
     /**
@@ -344,26 +316,5 @@ public abstract class CoreWorld extends World {
      */
     public void update() {
 
-    }
-
-
-
-    /**
-     * Initializes console settings.
-     */
-    static final void initializeConsole() {
-        if(initialized) return;
-        initialized = true;
-        Console.Config.coloredOutput = false;
-        Console.Config.manualConsoleWidth = 60;
-        try {
-            System.setErr(Console.CONSOLE_ERROR_STREAM);
-        } catch(Exception e) {
-            System.out.println("Exception");
-            e.printStackTrace();
-        } catch(Error e) {
-            System.out.println("Error");
-            e.printStackTrace();
-        }
     }
 }

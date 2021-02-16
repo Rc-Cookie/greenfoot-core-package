@@ -8,9 +8,7 @@ import java.util.function.Consumer;
 
 import greenfoot.Actor;
 import greenfoot.ActorVisitor;
-import greenfoot.Greenfoot;
 import greenfoot.GreenfootImage;
-import greenfoot.MouseInfo;
 import greenfoot.World;
 
 import com.github.rccookie.greenfoot.core.CoreActor;
@@ -18,7 +16,6 @@ import com.github.rccookie.common.geometry.Transform2D;
 import com.github.rccookie.common.geometry.Vector;
 import com.github.rccookie.common.geometry.Vector2D;
 import com.github.rccookie.common.util.Updatable;
-import com.github.rccookie.greenfoot.event.Input;
 import com.github.rccookie.common.data.json.JsonField;
 import com.github.rccookie.common.data.json.JsonSerializable;
 import com.github.rccookie.common.event.Time;
@@ -45,17 +42,8 @@ import com.github.rccookie.common.event.Time;
 @JsonSerializable
 public abstract class CoreActor extends Actor implements Updatable {
 
-    /**
-     * Indicates weather the current session is online or on the Greenfoot application.
-     * Offline the code runs plain java ansuring that any java functionallity will work.
-     * Online however the code gets converted to javascript which is not very reliable
-     * and does not have all classes that java has. Therefore special handling when
-     * operating online max be helpful or neccecary.
-     */
-    public static final boolean IS_ONLINE = CoreWorld.IS_ONLINE;
-
     static {
-        CoreWorld.initializeConsole();
+        Core.initializeConsole();
     }
 
     /**
@@ -73,6 +61,11 @@ public abstract class CoreActor extends Actor implements Updatable {
      * The time object of this actor. It is updated once per frame and can be accessed by extending classes.
      */
     protected final Time time = new NoExternalUpdateTime();
+
+    /**
+     * The image (not GreenfootImage) of this CoreActor.
+     */
+    private Image image;
 
 
 
@@ -97,6 +90,7 @@ public abstract class CoreActor extends Actor implements Updatable {
     public CoreActor() {
         addUpdateListener(() -> ((NoExternalUpdateTime)time).actualUpdate());
         addUpdateListener(() -> fixedMove(velocity));
+        setImage(getImage()); // Sets the default "green foot" image
     }
 
     /**
@@ -110,14 +104,27 @@ public abstract class CoreActor extends Actor implements Updatable {
         transform.location = getLocation();
         for(Consumer<World> action : addedToWorldActions) action.accept(w);
     }
-    
+
     /**
-     * Set the image for this actor to the specified image. If the default collider object is used, the scale of that collider will be set to the new bounds.
+     * 
      */
     @Override
     public void setImage(GreenfootImage image){
-        super.setImage(image);
+        if(!Image.class.isInstance(image)) image = Image.of(image);
+        this.image = (Image)image;
     }
+
+    /**
+     * Returns the current image of this actor. The returned instance is
+     * not a copy, so modifications will effect the look of this actor.
+     * 
+     * @return The actor's image
+     */
+    @Override
+    public Image getImage() {
+        return image;
+    }
+
 
 
     /**
@@ -258,7 +265,7 @@ public abstract class CoreActor extends Actor implements Updatable {
     public boolean hovered() {
         return hovered;
     }
-    
+
     /**
      * Called on each step when moving in steps using {@code moveInSteps()} or {@code fixedMoveInSteps()}. If false is being returned, the steps movement will be stoped.
      * 
@@ -278,10 +285,10 @@ public abstract class CoreActor extends Actor implements Updatable {
     }
 
     private void handleMouseInteractions() {
-        MouseInfo mouse = Input.mouseInfo();
-        hovered = mouse != null ? ActorVisitor.containsPoint(this, mouse.getX() * getWorld().getCellSize(), mouse.getY() * getWorld().getCellSize()) : false;
-        if(hovered && Greenfoot.mousePressed(this)) onPress();
-        else if(pressed && Greenfoot.mouseClicked(null)) onRelease();
+        MouseState mouse = MouseState.get();
+        hovered = mouse != null ? ActorVisitor.containsPoint(this, (int)mouse.location.x() * getWorld().getCellSize(), (int)mouse.location.y() * getWorld().getCellSize()) : false;
+        if(hovered && MouseState.pressed(this)) onPress();
+        else if(pressed && MouseState.released(null)) onRelease();
     }
 
     private void handleUpdateListeners() {

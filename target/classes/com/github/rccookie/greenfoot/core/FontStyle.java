@@ -4,22 +4,13 @@ import greenfoot.Font;
 
 public abstract class FontStyle extends Font {
 
-    /**
-     * Indicates weather the current session is online or on the Greenfoot application.
-     * Offline the code runs plain java ansuring that any java functionallity will work.
-     * Online however the code gets converted to javascript which is not very reliable
-     * and does not have all classes that java has. Therefore special handling when
-     * operating online max be helpful or neccecary.
-     */
-    public static final boolean IS_ONLINE = CoreWorld.IS_ONLINE;
-
     private final double newLineDim;
     private final double onlineScale;
 
     private FontStyle(String name, boolean bold, boolean italic, int size, double newLineDim, double onlineScale) {
         super(name, bold, italic, size);
         this.newLineDim = newLineDim;
-        this.onlineScale = IS_ONLINE ? onlineScale : 1;
+        this.onlineScale = Core.isOnline() ? onlineScale : 1;
     }
 
     public int getWidth(String string) {
@@ -51,6 +42,25 @@ public abstract class FontStyle extends Font {
                 return FontStyle.this.getCharWidth(c);
             }
         };
+    }
+
+
+
+    public static final FontStyle of(Font gFont) {
+        if(FontStyle.class.isInstance(gFont)) return (FontStyle)gFont;
+        return new GreenfootFontFontStyle(gFont);
+    }
+
+    private static final class GreenfootFontFontStyle extends FontStyle {
+
+        private GreenfootFontFontStyle(Font gFont) {
+            super(gFont.getName(), gFont.isBold(), gFont.isItalic(), gFont.getSize(), 1, 1);
+        }
+
+        @Override
+        protected double getCharWidth(char c) {
+            throw new UnsupportedOperationException("No character widths defined for font " + getName());
+        }
     }
 
 
