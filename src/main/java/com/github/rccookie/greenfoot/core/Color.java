@@ -1,14 +1,22 @@
 package com.github.rccookie.greenfoot.core;
 
 /**
- * An abstract representation of a color, consisting of RED, GREEN, BLUE
+ * An abstract representation of a colour, consisting of RED, GREEN, BLUE
  * and ALPHA (transparency).
- * <p>This is a subclass of {@link greenfoot.Color} that adds some conveniance
- * methods.
+ * 
+ * @author RcCookie
+ * @version 1.0
  */
-public class Color extends greenfoot.Color implements Cloneable {
+public class Color implements Cloneable {
 
+    static {
+        Core.initialize();
+    }
 
+    /**
+     * The effect of {@link #brighter()} and {@link #darker()}.
+     */
+    private static final double BRIGHTNESS_FACTOR = 0.7;
 
     /**
      * The color red.
@@ -83,6 +91,13 @@ public class Color extends greenfoot.Color implements Cloneable {
 
 
     /**
+     * The {@link greenfoot.Color} that backs this color.
+     */
+    private final greenfoot.Color gColor;
+
+
+
+    /**
      * Creates a copy of the given color.
      */
     public Color(Color copy) {
@@ -110,7 +125,16 @@ public class Color extends greenfoot.Color implements Cloneable {
      *              where {@code 0} is transparent
      */
     public Color(int red, int green, int blue, int alpha) {
-        super(red, green, blue, alpha);
+        this(new greenfoot.Color(red, green, blue, alpha));
+    }
+
+    /**
+     * Creates a new color based on the given greenfoot color.
+     * 
+     * @param gColor The {@link greenfoot.Color} to base this color on
+     */
+    private Color(greenfoot.Color gColor) {
+        this.gColor = gColor;
     }
 
 
@@ -125,14 +149,108 @@ public class Color extends greenfoot.Color implements Cloneable {
 
 
 
+    /**
+     * Returns new color that is brighter than this one.
+     * <p>This is <i>not</i> an exact reverse operation to {@link #darker()}.
+     * 
+     * @return A new color that is brighter than this color (unless it already
+     *         is white)
+     */
+    public Color brighter() {
+        // Based on java.awt.Color.brighter() implementation
+        int r = getRed();
+        int g = getGreen();
+        int b = getBlue();
+        int alpha = getAlpha();
+
+        int i = (int)(1 / (1 - BRIGHTNESS_FACTOR));
+        if ( r == 0 && g == 0 && b == 0) {
+            return new Color(i, i, i, alpha);
+        }
+        if ( r > 0 && r < i ) r = i;
+        if ( g > 0 && g < i ) g = i;
+        if ( b > 0 && b < i ) b = i;
+
+        return new Color(
+            Math.min((int)(r / BRIGHTNESS_FACTOR), 255),
+            Math.min((int)(g / BRIGHTNESS_FACTOR), 255),
+            Math.min((int)(b / BRIGHTNESS_FACTOR), 255),
+            alpha
+        );
+    }
+
+    /**
+     * Returns new color that is darker than this one.
+     * <p>This is <i>not</i> an exact reverse operation to {@link #brighter()}.
+     * 
+     * @return A new color that is darker than this color (unless it already
+     *         is black)
+     */
+    public Color darker() {
+        // Based on java.awt.Color.darker() implementation
+        return new Color(
+            Math.max((int)(getRed() * BRIGHTNESS_FACTOR), 0),
+            Math.max((int)(getGreen() * BRIGHTNESS_FACTOR), 0),
+            Math.max((int)(getBlue() * BRIGHTNESS_FACTOR), 0),
+            getAlpha()
+        );
+    }
+
+
+
+    /**
+     * Returns the alpha value (the transparency) of this color. {@code 0} means
+     * fully transparent, {@code 255} means solid.
+     * 
+     * @return The alpha value of this color
+     */
+    public int getAlpha() {
+        return gColor.getAlpha();
+    }
+
+    /**
+     * Returns the blue value of this color.
+     * 
+     * @return The blue value of this color
+     */
+    public int getBlue() {
+        return gColor.getBlue();
+    }
+
+    /**
+     * Returns the green value of this color.
+     * 
+     * @return The green value of this color
+     */
+    public int getGreen() {
+        return gColor.getGreen();
+    }
+
+    /**
+     * Returns the red value of this color.
+     * 
+     * @return The red value of this color
+     */
+    public int getRed() {
+        return gColor.getRed();
+    }
+
+    /**
+     * Returns the hash code of this color. Only equal colors have the same color.
+     * 
+     * @return The hash code of this color
+     */
     @Override
-    public greenfoot.Color brighter() {
-        return of(super.brighter());
+    public int hashCode() {
+        return gColor.hashCode();
     }
 
     @Override
-    public greenfoot.Color darker() {
-        return of(super.darker());
+    public boolean equals(Object obj) {
+        if(obj == this) return true;
+        if(obj instanceof Color || obj instanceof greenfoot.Color)
+            return obj.hashCode() == hashCode();
+        return false;
     }
 
 
@@ -277,53 +395,23 @@ public class Color extends greenfoot.Color implements Cloneable {
 
 
 
+    /**
+     * Converts the given {@link greenfoot.Color} to a color.
+     * 
+     * @param gColor The {@link greenfoot.Color} to convert
+     * @return The converted color
+     */
     public static final Color of(greenfoot.Color gColor) {
-        if(Color.class.isInstance(gColor)) return (Color)gColor;
-        return new GreenfootColorColor(gColor);
+        return new Color(gColor);
     }
 
-    private static final class GreenfootColorColor extends Color {
-
-        private final greenfoot.Color gColor;
-
-        private GreenfootColorColor(greenfoot.Color gColor) {
-            super(0, 0, 0);
-            this.gColor = gColor;
-        }
-
-        @Override
-        public Color brighter() {
-            return of(gColor.brighter());
-        }
-
-        @Override
-        public Color darker() {
-            return of(gColor.brighter());
-        }
-
-        @Override
-        public int getAlpha() {
-            return gColor.getAlpha();
-        }
-
-        @Override
-        public int getBlue() {
-            return gColor.getBlue();
-        }
-
-        @Override
-        public int getGreen() {
-            return gColor.getGreen();
-        }
-
-        @Override
-        public int getRed() {
-            return gColor.getRed();
-        }
-
-        @Override
-        public int hashCode() {
-            return gColor.hashCode();
-        }
+    /**
+     * Converts the given color into a {@link greenfoot.Color}.
+     * 
+     * @param color The color to convert
+     * @return The converted {@link greenfoot.Color}
+     */
+    public static final greenfoot.Color asGColor(Color color) {
+        return color.gColor;
     }
 }

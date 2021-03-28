@@ -3,6 +3,8 @@ package com.github.rccookie.greenfoot.event;
 import java.util.Objects;
 import java.util.Optional;
 
+import com.github.rccookie.greenfoot.core.User;
+
 /**
  * The login manager handles user accounts. If allowes users to create an
  * account using their existing Greenfoot account but with an independent

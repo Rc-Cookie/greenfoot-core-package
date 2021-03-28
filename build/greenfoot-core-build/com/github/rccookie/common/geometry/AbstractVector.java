@@ -73,7 +73,7 @@ public abstract class AbstractVector<V extends AbstractVector<? extends V>> impl
      * @param dimension The dimension to get the coordinate for
      */
     @Override
-    public double get(int dimension) {
+    public double getDim(int dimension) {
         if(dimension >= coordinates.length) return 0;
         return coordinates[dimension];
     }
@@ -102,7 +102,7 @@ public abstract class AbstractVector<V extends AbstractVector<? extends V>> impl
         if(size() == 0) return "[]";
         StringBuilder string = new StringBuilder().append('[');
         for(int i=0; i<size(); i++) {
-            string.append(get(i));
+            string.append(getDim(i));
             if(i < size() - 1) string.append('|');
         }
         return string.append(']').toString();
@@ -117,16 +117,16 @@ public abstract class AbstractVector<V extends AbstractVector<? extends V>> impl
         if(!(obj instanceof Vector)) return false;
         Vector vector = (Vector)obj;
         if(size() == vector.size()) {
-            for(int i=0; i<size(); i++) if(get(i) != vector.get(i)) return false;
+            for(int i=0; i<size(); i++) if(getDim(i) != vector.getDim(i)) return false;
             return true;
         }
         if(size() < vector.size()) {
-            for(int i=0; i<size(); i++) if(get(i) != vector.get(i)) return false;
-            for(int i=size(); i<vector.size(); i++) if(vector.get(i) != 0) return false;
+            for(int i=0; i<size(); i++) if(getDim(i) != vector.getDim(i)) return false;
+            for(int i=size(); i<vector.size(); i++) if(vector.getDim(i) != 0) return false;
             return true;
         }
-        for(int i=0; i<vector.size(); i++) if(get(i) != vector.get(i)) return false;
-        for(int i=vector.size(); i<size(); i++) if(get(i) != 0) return false;
+        for(int i=0; i<vector.size(); i++) if(getDim(i) != vector.getDim(i)) return false;
+        for(int i=vector.size(); i<size(); i++) if(getDim(i) != 0) return false;
         return true;
     }
 
@@ -149,19 +149,19 @@ public abstract class AbstractVector<V extends AbstractVector<? extends V>> impl
 
     @Override
     public double x() throws DimensionOutOfBoundsException {
-        return get(X);
+        return getDim(X);
     }
 
     @Override
     public double y() throws DimensionOutOfBoundsException {
-        return get(Y);
+        return getDim(Y);
     }
 
     @Override
     public double[] toArray() {
         int size = size();
         double[] array = new double[size];
-        for(int i=0; i<size; i++) array[i] = get(i);
+        for(int i=0; i<size; i++) array[i] = getDim(i);
         return array;
     }
 
@@ -188,7 +188,7 @@ public abstract class AbstractVector<V extends AbstractVector<? extends V>> impl
     public V set(Vector vector) throws NullPointerException {
         Objects.requireNonNull(vector, "The vector to set to must not be null");
         int max = Math.min(size(), vector.size());
-        for(int i=0; i<max; i++) setDim(i, vector.get(i));
+        for(int i=0; i<max; i++) setDim(i, vector.getDim(i));
         return getThis();
     }
 
@@ -223,14 +223,14 @@ public abstract class AbstractVector<V extends AbstractVector<? extends V>> impl
         Objects.requireNonNull(vector, "The vector to calculate the dot product for must not be null");
         double dot = 0;
         int size = Math.min(size(), vector.size());
-        for(int i=0; i<size; i++) dot += get(i) * vector.get(i);
+        for(int i=0; i<size; i++) dot += getDim(i) * vector.getDim(i);
         return dot;
     }
 
     @Override
     public boolean isZero() {
         int size = size();
-        for(int i=0; i<size; i++) if(get(i) != 0) return false;
+        for(int i=0; i<size; i++) if(getDim(i) != 0) return false;
         return true;
     }
 
@@ -252,7 +252,7 @@ public abstract class AbstractVector<V extends AbstractVector<? extends V>> impl
     public V scale(double scalar) throws UnsupportedOperationException {
         if(scalar == 1) return getThis();
         int size = size();
-        for(int i=0; i<size; i++) setDim(i, get(i) * scalar);
+        for(int i=0; i<size; i++) setDim(i, getDim(i) * scalar);
         return getThis();
     }
 
@@ -293,7 +293,7 @@ public abstract class AbstractVector<V extends AbstractVector<? extends V>> impl
         for(Vector vector : vectors) {
             if(vector == null) continue;
             int max = Math.min(size(), vector.size());
-            for(int i=0; i<max; i++) setDim(i, get(i) + vector.get(i));
+            for(int i=0; i<max; i++) setDim(i, getDim(i) + vector.getDim(i));
         }
         return getThis();
     }
@@ -307,7 +307,7 @@ public abstract class AbstractVector<V extends AbstractVector<? extends V>> impl
         for(Vector vector : vectors) {
             if(vector == null) continue;
             int max = Math.min(size(), vector.size());
-            for(int i=0; i<max; i++) setDim(i, get(i) - vector.get(i));
+            for(int i=0; i<max; i++) setDim(i, getDim(i) - vector.getDim(i));
         }
         return getThis();
     }
@@ -317,21 +317,21 @@ public abstract class AbstractVector<V extends AbstractVector<? extends V>> impl
     @Override
     public V floor() throws UnsupportedOperationException {
         int size = size();
-        for(int i=0; i<size; i++) setDim(i, Math.floor(get(i)));
+        for(int i=0; i<size; i++) setDim(i, Math.floor(getDim(i)));
         return getThis();
     }
 
     @Override
     public V ceil() throws UnsupportedOperationException {
         int size = size();
-        for(int i=0; i<size; i++) setDim(i, Math.ceil(get(i)));
+        for(int i=0; i<size; i++) setDim(i, Math.ceil(getDim(i)));
         return getThis();
     }
 
     @Override
     public V round() throws UnsupportedOperationException {
         int size = size();
-        for(int i=0; i<size; i++) setDim(i, Math.round(get(i)));
+        for(int i=0; i<size; i++) setDim(i, Math.round(getDim(i)));
         return getThis();
     }
 
@@ -418,17 +418,17 @@ public abstract class AbstractVector<V extends AbstractVector<? extends V>> impl
     public Vector2D get2D() throws UnsupportedOperationException {
         int size = size();
         if(size == 0) return new Vector2D();
-        if(size == 1) return new Vector2D(get(X));
-        return new Vector2D(get(X), get(Y));
+        if(size == 1) return new Vector2D(getDim(X));
+        return new Vector2D(getDim(X), getDim(Y));
     }
 
     @Override
     public Vector3D get3D() throws UnsupportedOperationException {
         int size = size();
         if(size == 0) return new Vector3D();
-        if(size == 1) return new Vector3D(get(X));
-        if(size == 2) return new Vector3D(get(X), get(Y));
-        return new Vector3D(get(X), get(Y), get(Z));
+        if(size == 1) return new Vector3D(getDim(X));
+        if(size == 2) return new Vector3D(getDim(X), getDim(Y));
+        return new Vector3D(getDim(X), getDim(Y), getDim(Z));
     }
 
 

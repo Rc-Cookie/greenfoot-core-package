@@ -28,8 +28,8 @@ public final class Vectors {
         }
 
         @Override
-        public double get(int dimension) {
-            return base.get(dimension);
+        public double getDim(int dimension) {
+            return base.getDim(dimension);
         }
 
         @Override
@@ -44,7 +44,7 @@ public final class Vectors {
         }
 
         @Override
-        public Vector clone() throws CloneNotSupportedException {
+        public Vector clone() {
             return new ImmutableVector(base);
         }
 
@@ -221,8 +221,8 @@ public final class Vectors {
         }
 
         @Override
-        public double get(int dimension) {
-            return base.get(dimension);
+        public double getDim(int dimension) {
+            return base.getDim(dimension);
         }
 
         @Override
@@ -263,11 +263,6 @@ public final class Vectors {
 
         @Override
         public Vector2D setY(double y) throws UnsupportedOperationException {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Vector2D set(Vector2D vector) throws NullPointerException {
             throw new UnsupportedOperationException();
         }
 
@@ -414,8 +409,8 @@ public final class Vectors {
         }
 
         @Override
-        public double get(int dimension) {
-            return base.get(dimension);
+        public double getDim(int dimension) {
+            return base.getDim(dimension);
         }
 
         @Override

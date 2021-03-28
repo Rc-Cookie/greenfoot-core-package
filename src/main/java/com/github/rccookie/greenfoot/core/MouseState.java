@@ -1,10 +1,9 @@
 package com.github.rccookie.greenfoot.core;
 
-import java.util.Optional;
-
 import com.github.rccookie.common.geometry.Vector;
 import com.github.rccookie.common.geometry.Vector2D;
 import com.github.rccookie.common.geometry.Vectors;
+import com.github.rccookie.common.util.Optional;
 
 import greenfoot.Actor;
 import greenfoot.Greenfoot;
@@ -12,8 +11,15 @@ import greenfoot.MouseInfo;
 
 /**
  * Represents the state of mouse at a certain point in time.
+ * 
+ * @author RcCookie
+ * @version 1.0
  */
 public class MouseState {
+
+    static {
+        Core.initialize();
+    }
 
     /**
      * The last not-null mouse state updated whenever {@link #now()} or {@link #get()}

@@ -23,7 +23,7 @@ public class Transform2D implements Cloneable, Saveable {
      * The location part of the transform represented by a vector.
      */
     @JsonField
-    public Vector2D location;
+    public final Vector2D location;
 
     /**
      * The rotation part of the transform.
@@ -35,7 +35,7 @@ public class Transform2D implements Cloneable, Saveable {
     /**
      * Creates a new transform located at (0|0) and with the rotation 0.
      */
-    public Transform2D(){
+    public Transform2D() {
         this(new Vector2D(0, 0), 0);
     }
 
@@ -47,8 +47,8 @@ public class Transform2D implements Cloneable, Saveable {
      * 
      * @param clone The vector to clone
      */
-    public Transform2D(Transform2D clone){
-        this(clone.location.clone() , clone.rotation);
+    public Transform2D(Transform2D clone) {
+        this(clone.location, clone.rotation);
     }
 
     /**
@@ -76,7 +76,7 @@ public class Transform2D implements Cloneable, Saveable {
      * @param rotation The rotation of the transform
      */
     public Transform2D(Vector2D location, double rotation){
-        this.location = location;
+        this.location = new Vector2D(location);
         this.rotation = rotation;
     }
 

@@ -7,6 +7,7 @@ import com.github.rccookie.common.geometry.Vector2D;
 import com.github.rccookie.common.util.Cache;
 import com.github.rccookie.common.util.CachedItem;
 
+@Deprecated
 public abstract class Input {
 
     private static final long DEF_KEY_CACHE_DURATION = 15l;

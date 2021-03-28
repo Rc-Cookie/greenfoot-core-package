@@ -4,6 +4,36 @@ import java.util.Objects;
 
 import com.github.rccookie.common.data.Saveable;
 
+/**
+ * Representation of a generic geometrical vector. The common abstract implementation
+ * if this class is {@link AbstractVector}.
+ * <p>Different vectors can have different sizes, meaning the number of different
+ * dimension. Inside of an instance of a vector the size must be constant though.
+ * Usually vectors should have at least 2 dimensions, otherwise they don't make a
+ * lot of sence. Because of that the methods {@link #x()} and {@link #y()} exist as
+ * conveniance methods.
+ * <p>At any point in time any dimension of a vector can be requsted using
+ * {@link #getDim(int)}. If that dimension is negative, a {@link RuntimeException} of
+ * some sort will be thrown. If the dimension is not provided by the vector, it will
+ * return {@code 0}, as if it was placed in a world with that many dimensions.
+ * <p>Vectors offer a lot of methods to mathmatically interact with them, like adding
+ * or scaling them, or calculating its length. For more specific operations like cross
+ * products or angles you need to use the dimension-specific implementations like
+ * {@link Vector2D}.
+ * <p>Any vector can also savely be converted into a 2D or 3D vector, for conveniance.
+ * Note that if the vector is already of that format it will return itself (not a copy).
+ * <p>A vector may be <i>immutable</i>. This means that while reading methods will work
+ * like normal, any method that may change a coordinate of the vector will throw an
+ * {@link UnsupportedOperationException}.
+ * <p>Additionally, the vector class also contains some static methods to work with
+ * vectos.
+ * 
+ * @author RcCookie
+ * 
+ * @see AbstractVector
+ * @see Vector2D
+ * @see Vector3D
+ */
 public interface Vector extends Cloneable, Saveable {
 
 
@@ -45,7 +75,7 @@ public interface Vector extends Cloneable, Saveable {
      * @see #y()
      * @see #setDim(int, double)
      */
-    public double get(int dimension);
+    public double getDim(int dimension);
 
     /**
      * Sets the coordinate in the specified dimension of this vector to the specified value.
@@ -56,7 +86,7 @@ public interface Vector extends Cloneable, Saveable {
      * @throws UnsupportedOperationException If this vector is immutable
      * @see #setX()
      * @see #setY()
-     * @see #get(int)
+     * @see #getDim(int)
      */
     public Vector setDim(int dimension, double coordinate) throws UnsupportedOperationException, DimensionOutOfBoundsException;
 
@@ -80,9 +110,9 @@ public interface Vector extends Cloneable, Saveable {
      * 
      * @return A copy of this vector
      */
-    Vector clone() throws CloneNotSupportedException;
+    Vector clone();
 
-    
+
 
     /**
      * Returns a string representation of this vector with the followin syntax:
@@ -155,7 +185,7 @@ public interface Vector extends Cloneable, Saveable {
      * Returns the x-coordinate of this vector.
      * 
      * @return The x-coordinate of this vector
-     * @see #get(int)
+     * @see #getDim(int)
      */
     public double x();
 
@@ -163,7 +193,7 @@ public interface Vector extends Cloneable, Saveable {
      * Returns the y-coordinate of this vector.
      * 
      * @return The y-coordinate of this vector
-     * @see #get(int)
+     * @see #getDim(int)
      */
     public double y();
 
@@ -560,5 +590,40 @@ public interface Vector extends Cloneable, Saveable {
         Objects.requireNonNull(to);
         if(from.size() > to.size()) return from.inverted().add(to);
         return to.subtracted(from);
+    }
+
+
+
+    /**
+     * Creates a vector with the specified coordinates and a size defined by the number of
+     * coordinates specified.
+     * <p>If there is an implementation of vector inside of this package that is specificly
+     * designed for these number of coordinates, an instance of that vector will be returned.
+     * 
+     * @param coordinates The coordinates of the vector
+     * @return A vector with the given coordinates
+     */
+    public static Vector of(double... coordinates) {
+        Objects.requireNonNull(coordinates);
+        if(coordinates.length == 0) return ZeroDimVector.get();
+        if(coordinates.length == 1) return new Vector1D(coordinates[0]);
+        if(coordinates.length == 2) return new Vector2D(coordinates[0], coordinates[1]);
+        if(coordinates.length == 3) return new Vector3D(coordinates[0], coordinates[1], coordinates[2]);
+        return new VariableSizeVector(coordinates);
+    }
+
+    /**
+     * Creates a copy of the given vector. The new vector is not neccecarily from the same
+     * class as the old one, but has as many dimensions and will return {@code true} on
+     * equals test.
+     * <p>If there is an implementation of vector inside of this package that is specificly
+     * designed for these number of coordinates, an instance of that vector will be returned.
+     * 
+     * @param copied The vector to copy
+     * @return A copy of the given vector
+     */
+    public static Vector of(Vector copied) {
+        Objects.requireNonNull(copied);
+        return of(copied.toArray());
     }
 }

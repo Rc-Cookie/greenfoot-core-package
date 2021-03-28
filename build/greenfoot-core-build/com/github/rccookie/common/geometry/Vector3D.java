@@ -127,7 +127,7 @@ public class Vector3D extends AbstractVector<Vector3D> {
 
 
 
-    public double z() { return get(Z); }
+    public double z() { return getDim(Z); }
 
     public Vector3D setZ(double z) {
         return setDim(Z, z);

@@ -5,8 +5,8 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-import greenfoot.Color;
-import greenfoot.GreenfootImage;
+import com.github.rccookie.greenfoot.core.Color;
+import com.github.rccookie.greenfoot.core.Image;
 import com.github.rccookie.greenfoot.core.CoreActor;
 
 public abstract class UIElement extends CoreActor {
@@ -14,7 +14,7 @@ public abstract class UIElement extends CoreActor {
     /**
      * The design used by this ui element.
      */
-    private Design design = Design.getDefaultDesign();
+    private Design design = Design.DEFAULT;
 
     /**
      * Stores the indices in the theme of the colored elements.
@@ -244,7 +244,7 @@ public abstract class UIElement extends CoreActor {
     }
 
     @Override
-    public GreenfootImage getImage() {
+    public Image getImage() {
         if(imageChanged) {
             imageChanged = false;
             regenerateImages();

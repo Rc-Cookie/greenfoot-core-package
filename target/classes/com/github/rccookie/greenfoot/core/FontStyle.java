@@ -2,7 +2,18 @@ package com.github.rccookie.greenfoot.core;
 
 import greenfoot.Font;
 
+/**
+ * A subclass of {@link Font} that adds the ability to calculate
+ * the size of text that is printed.
+ * 
+ * @author RcCookie
+ * @version 0.1
+ */
 public abstract class FontStyle extends Font {
+
+    static {
+        Core.initialize();
+    }
 
     private final double newLineDim;
     private final double onlineScale;
@@ -13,6 +24,13 @@ public abstract class FontStyle extends Font {
         this.onlineScale = Core.isOnline() ? onlineScale : 1;
     }
 
+    /**
+     * Returns the width of the specified string in pixels when written with
+     * this font.
+     * 
+     * @param string The string to calculate the length for
+     * @return The length of the string, in pixels
+     */
     public int getWidth(String string) {
         int maxWidth = 0;
         double current = 0;
@@ -27,8 +45,21 @@ public abstract class FontStyle extends Font {
         return (int)(Math.max(maxWidth, current) * onlineScale);
     }
 
+    /**
+     * Returns the width of the given char relative to the fint size.
+     * 
+     * @param c The char to get the width for
+     * @return The char's witdh
+     */
     protected abstract double getCharWidth(char c);
 
+    /**
+     * Returns the height of the specified string in pixels when written with
+     * this font.
+     * 
+     * @param string The string to calculate the width for
+     * @return The width of the string, in height
+     */
     public int getHeight(String string) {
         int nLines = numberOfLines(string);
         return getSize() * nLines + (int)(getSize() * (nLines - 1) * newLineDim);
@@ -46,8 +77,16 @@ public abstract class FontStyle extends Font {
 
 
 
+    /**
+     * Creates a new FontStyle from the given {@link Font}. The returned instance will
+     * throw an exception if the width is requested. If the given font already is an
+     * instance of FontStyle, it will be returned itself.
+     * 
+     * @param gFont The greenfoot.Font to convert to a FontStyle
+     * @return A FontStyle representing the given font
+     */
     public static final FontStyle of(Font gFont) {
-        if(FontStyle.class.isInstance(gFont)) return (FontStyle)gFont;
+        if(gFont instanceof FontStyle) return (FontStyle)gFont;
         return new GreenfootFontFontStyle(gFont);
     }
 
@@ -65,10 +104,24 @@ public abstract class FontStyle extends Font {
 
 
 
+    /**
+     * Returns a monostace styled font.
+     * 
+     * @param size The font size
+     * @return The monospace font
+     */
     public static final FontStyle monospace(int size) {
         return monospace(size, false, false);
     }
 
+    /**
+     * Returns a monostace styled font.
+     * 
+     * @param size The font size
+     * @param bold Weather the font should be bold
+     * @param italic Weather the font should be italic
+     * @return The monospace font
+     */
     public static final FontStyle monospace(int size, boolean bold, boolean italic) {
         return new FontStyle("Consolas", bold, italic, size, 0.2, 0.975) {
             @Override
@@ -80,10 +133,24 @@ public abstract class FontStyle extends Font {
 
 
 
+    /**
+     * Returns a modern styled font.
+     * 
+     * @param size The font size
+     * @return The monospace font
+     */
     public static final FontStyle modern(int size) {
         return modern(size, false, false);
     }
 
+    /**
+     * Returns a modern styled font.
+     * 
+     * @param size The font size
+     * @param bold Weather the font should be bold
+     * @param italic Weather the font should be italic
+     * @return The monospace font
+     */
     public static final FontStyle modern(int size, boolean bold, boolean italic) {
         return new FontStyle("Segoe UI", bold, italic, size, 0.38, 1.025) {
             @Override

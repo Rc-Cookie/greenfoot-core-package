@@ -14,15 +14,12 @@ import com.github.rccookie.common.geometry.Geometry;
 import com.github.rccookie.common.util.ClassTag;
 import com.github.rccookie.common.util.Lists;
 import com.github.rccookie.greenfoot.game.util.ActorTag;
-import com.github.rccookie.greenfoot.ui.advanced.DropDownMenu;
-import com.github.rccookie.greenfoot.ui.advanced.FpsDisplay;
-import com.github.rccookie.greenfoot.ui.advanced.Scoreboard;
-import com.github.rccookie.greenfoot.ui.basic.Fade;
-import com.github.rccookie.greenfoot.ui.basic.Slider;
-import com.github.rccookie.greenfoot.ui.basic.Text;
-import com.github.rccookie.greenfoot.ui.basic.TextButton;
-import com.github.rccookie.greenfoot.ui.basic.UIPanel;
-import com.github.rccookie.greenfoot.ui.basic.UIWorld;
+import com.github.rccookie.greenfoot.ui.Scoreboard;
+import com.github.rccookie.greenfoot.ui.Fade;
+import com.github.rccookie.greenfoot.ui.Text;
+import com.github.rccookie.greenfoot.ui.TextButton;
+import com.github.rccookie.greenfoot.ui.UIPanel;
+import com.github.rccookie.greenfoot.ui.UIWorld;
 
 public abstract class GameWorld extends UIWorld {
 
@@ -35,7 +32,7 @@ public abstract class GameWorld extends UIWorld {
 
 
     static {
-        @SuppressWarnings("rawtypes")
+        /*@SuppressWarnings("rawtypes")
         Class[] newOrder = {
             FpsDisplay.class,
             Fade.class,
@@ -50,8 +47,9 @@ public abstract class GameWorld extends UIWorld {
             Text.class,
             UIPanel.class
         };
-        UI_CLASS_PAINT_ORDER = newOrder;
+        UI_CLASS_PAINT_ORDER = newOrder;*/
     }
+
 
 
     private static final String QUIT_INFO_STRING = "Quitting is not implemented.\nOverride the 'quit' method in your world class to add functionallity.\nFor example:\n@Override\npublic void quit() {\n    Greenfoot.setWorld(new MainMenu());\n}";
@@ -418,7 +416,7 @@ public abstract class GameWorld extends UIWorld {
      */
     private void internalNotStartedUpdate() {
         if(startCountdown != null) {
-            startCountdown.setContent((int)Math.ceil((startDelay - System.nanoTime() + createTime) / 1000000000d) + "");
+            startCountdown.setTitle((int)Math.ceil((startDelay - System.nanoTime() + createTime) / 1000000000d) + "");
             if(startAfterDelay && System.nanoTime() - createTime >= startDelay) {
                 removeObject(startCountdown);
                 start();
@@ -433,13 +431,13 @@ public abstract class GameWorld extends UIWorld {
     private void internalGameUpdate() {
         if(timer != null) {
             if(limitTime) {
-                timer.setContent(formatDouble(getRemainingTime()));
+                timer.setTitle(formatDouble(getRemainingTime()));
                 //if(getRemainingTime() < 3 && !timer.getColor().equals(TEXT_COLOR_3)) timer.setColor(TEXT_COLOR_3);
             }
-            else timer.setContent(formatDouble(timeElapsed()));
+            else timer.setTitle(formatDouble(timeElapsed()));
         }
         if(limitTime && nanosElapsed() >= gameDuration) {
-            if(timer != null) timer.setContent("0.0");
+            if(timer != null) timer.setTitle("0.0");
             end();
         }
         gameUpdate();
@@ -1280,7 +1278,7 @@ public abstract class GameWorld extends UIWorld {
      */
     public void setScore(double score) {
         this.score = score;
-        if(scoreText != null) scoreText.setContent(scoreTitle + ": " + Geometry.floor(getScore(), -2));
+        if(scoreText != null) scoreText.setTitle(scoreTitle + ": " + Geometry.floor(getScore(), -2));
     }
 
     /**

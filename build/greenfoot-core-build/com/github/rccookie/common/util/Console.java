@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-import jline.TerminalFactory;
+//import jline.TerminalFactory;
 
 import com.diogonunes.jcolor.*;
 
@@ -756,18 +756,20 @@ public final class Console {
     }
 
     private static final String classAndLineString(int off) {
-        final StackTraceElement[] elements = Thread.currentThread().getStackTrace();
-        final int index = elements.length > off ? off : elements.length - 1;
-        return elements[index].getFileName() + ':' + elements[index].getLineNumber();
+        try {
+            final StackTraceElement[] elements = Thread.currentThread().getStackTrace();
+            final int index = elements.length > off ? off : elements.length - 1;
+            return elements[index].getFileName() + ':' + elements[index].getLineNumber();
+        } catch(Exception e) { }
+        return "";
     }
 
     private static final int getConsoleWidth() {
         if(Config.manualConsoleWidth != null) return Config.manualConsoleWidth;
         try {
-            return Math.max(TerminalFactory.get().getWidth(), 100);
-        } catch(Exception e) {
-            return 100;
-        }
+            //return Math.max(TerminalFactory.get().getWidth(), 100);
+        } catch(Exception e) { }
+        return 100;
     }
 
     /**

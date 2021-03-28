@@ -4,7 +4,7 @@ import java.util.Objects;
 
 import greenfoot.Actor;
 import greenfoot.Color;
-import com.github.rccookie.greenfoot.ui.basic.Marker;
+import com.github.rccookie.greenfoot.ui.Marker;
 import com.github.rccookie.greenfoot.ui.util.Theme;
 
 public class Raycasting {

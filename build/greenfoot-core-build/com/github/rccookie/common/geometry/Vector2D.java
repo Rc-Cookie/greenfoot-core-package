@@ -3,16 +3,12 @@ package com.github.rccookie.common.geometry;
 import java.util.Objects;
 
 /**
- * The Vector class is used to store an 2D-arrow using containing an x and
- * a y distance. It is commonly used in physics or graphics math.<p>
- * Unlike the official Vector, this one is not a type of list and cannot
- * contain a variable number of dimensions. Also, it can only store two
- * doubles and no other types of objects. Therefore, it contains a number
- * of helpful methods to interact with it in a mathmatical way which is
- * not supported by the official Vector class.
+ * A 2-dimensional vector based on {@link Vector}.
+ * <p>2-dimensional vectors add the option to measure angles and calcutale
+ * cross products. With that the class also contains useful methods to use
+ * this information to interact with 2D vectors.
  * 
  * @author RcCookie
- * @version 3.0
  */
 public class Vector2D extends AbstractVector<Vector2D> {
 
@@ -113,16 +109,6 @@ public class Vector2D extends AbstractVector<Vector2D> {
      */
     public Vector2D set(double x, double y) {
         return setX(x).setY(y);
-    }
-
-    /**
-     * Sets this vectors coordinates to the ones from the given vector.
-     * 
-     * @param vector The vector to set this vectors coordinates to
-     * @return This vector
-     */
-    public Vector2D set(Vector2D vector) {
-        return set(vector.x(), vector.y());
     }
 
 

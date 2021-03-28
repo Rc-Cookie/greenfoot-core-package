@@ -2,8 +2,8 @@ package com.github.rccookie.greenfoot.ui.util;
 
 import java.util.List;
 
-import greenfoot.Color;
-import greenfoot.GreenfootImage;
+import com.github.rccookie.greenfoot.core.Color;
+import com.github.rccookie.greenfoot.core.Image;
 import com.github.rccookie.common.util.ClassTag;
 
 /**
@@ -33,17 +33,17 @@ public abstract class Interactable extends UIElement {
     /**
      * The standart image of the of the object.
      */
-    private GreenfootImage image;
+    private Image image;
 
     /**
      * The objects image when hovered over it with the mouse.
      */
-    private GreenfootImage hoverImage;
+    private Image hoverImage;
 
     /**
      * The objects image when it is being clicked.
      */
-    private GreenfootImage clickImage;
+    private Image clickImage;
 
     /**
      * Flag indicating weather this element is currently enabled for interactions.
@@ -106,8 +106,8 @@ public abstract class Interactable extends UIElement {
     protected void regenerateImages() {
         image = createMainImage();
         if(image != null) {
-            createHoverImage(hoverImage = new GreenfootImage(image));
-            createClickImage(clickImage = new GreenfootImage(image));
+            createHoverImage(hoverImage = new Image(image));
+            createClickImage(clickImage = new Image(image));
         }
         updateImageSelection();
     }
@@ -117,14 +117,14 @@ public abstract class Interactable extends UIElement {
      * 
      * @return The main image for this object
      */
-    protected abstract GreenfootImage createMainImage();
+    protected abstract Image createMainImage();
 
     /**
      * Edits the given image to fit the hover state.
      * 
      * @param base The base image to edit (no need to copy), will not be null
      */
-    protected void createHoverImage(GreenfootImage base) {
+    protected void createHoverImage(Image base) {
         base.setColor(HOVER_OUTLINE_COLOR);
         base.drawRect(0, 0, base.getWidth() - 1, base.getHeight() - 1);
         base.drawRect(1, 1, base.getWidth() - 3, base.getHeight() - 3);
@@ -135,7 +135,7 @@ public abstract class Interactable extends UIElement {
      * 
      * @param base The base image to edit (no need to copy), will not be null
      */
-    protected void createClickImage(GreenfootImage base) {
+    protected void createClickImage(Image base) {
         base.setColor(CLICK_COLOR_CORRECTION);
         base.scale((int)(base.getWidth() * CLICK_SCALE), (int)(base.getHeight() * CLICK_SCALE));
         base.fill();

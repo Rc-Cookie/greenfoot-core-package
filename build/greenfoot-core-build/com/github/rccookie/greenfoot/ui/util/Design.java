@@ -3,7 +3,7 @@ package com.github.rccookie.greenfoot.ui.util;
 import java.io.Serializable;
 import java.util.Objects;
 
-import com.github.rccookie.greenfoot.ui.basic.UIWorld;
+import com.github.rccookie.greenfoot.ui.UIWorld;
 
 public class Design implements Cloneable, Serializable {
 
@@ -13,10 +13,11 @@ public class Design implements Cloneable, Serializable {
     public static final Design DEBUG = new Design(Theme.DEBUG, Theme.DEBUG_TEXT);
     public static final Design ERROR = new Design(Theme.ERROR, Theme.ERROR_TEXT);
 
-    public static final DefaultDesign DEFAULT = new DefaultDesign();
-
+    public static final Design DEFAULT = new DefaultDesign();
 
     private static final long serialVersionUID = -566036656977062509L;
+
+
 
     private final Theme theme;
     private final Theme textTheme;
@@ -58,14 +59,12 @@ public class Design implements Cloneable, Serializable {
 
 
 
-
     public static final void debug() { setDebug(true); }
-    public static final void setDebug(boolean flag) { DEFAULT.setDebugState(flag); }
+    public static final void setDebug(boolean flag) { ((DefaultDesign)DEFAULT).setDebugState(flag); }
 
-    public static final void useDarkMode() { DEFAULT.setDesign(DARK_MODE); }
-    public static final void useLightMode() { DEFAULT.setDesign(LIGHT_MODE); }
-    public static final void setDefaultDesign(Design design) { DEFAULT.setDesign(design); }
-    public static final Design getDefaultDesign() { return DEFAULT; }
+    public static final void useDarkMode() { ((DefaultDesign)DEFAULT).setDesign(DARK_MODE); }
+    public static final void useLightMode() { ((DefaultDesign)DEFAULT).setDesign(LIGHT_MODE); }
+    public static final void setDefault(Design design) { ((DefaultDesign)DEFAULT).setDesign(design); }
 
 
 
@@ -75,7 +74,6 @@ public class Design implements Cloneable, Serializable {
 
         private static final Design DEFAULT_DESIGN = LIGHT_MODE;
 
-        
         private Design currentDefaultDesign = DEFAULT_DESIGN;
         private boolean debug = false;
 

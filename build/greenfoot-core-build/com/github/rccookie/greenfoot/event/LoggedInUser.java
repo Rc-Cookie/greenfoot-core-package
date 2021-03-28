@@ -1,5 +1,6 @@
 package com.github.rccookie.greenfoot.event;
 
+import com.github.rccookie.greenfoot.core.User;
 import com.github.rccookie.greenfoot.event.LoginManager.InternalPasswordChangeException;
 import com.github.rccookie.greenfoot.event.LoginManager.LoginException;
 

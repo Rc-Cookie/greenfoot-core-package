@@ -11,15 +11,11 @@ import greenfoot.core.WorldHandler;
 
 /**
  * Utility class to work with the simulation and more, for example getting random numbers.
+ * 
+ * @author RcCookie
+ * @version 1.0
  */
 public final class Core  {
-
-    /**
-     * Should not be initiated.
-     */
-    private Core() { }
-
-
 
     /**
      * Indicates weather the current session is online or on the Greenfoot application.
@@ -58,8 +54,15 @@ public final class Core  {
     private static boolean initialized = false;
 
     static {
-        initializeConsole();
+        initialize();
     }
+
+
+
+    /**
+     * Should not be initiated.
+     */
+    private Core() { }
 
 
 
@@ -213,12 +216,22 @@ public final class Core  {
     }
 
     /**
-     * Sets the world to be shown and updated if the scenario is running.
+     * Sets the map to be shown and updated if the scenario is running.
      * 
-     * @param world The world to show
+     * @param map The map to show
      */
-    public static final void setWorld(World world) {
-        Greenfoot.setWorld(world);
+    public static final void setMap(Map map) {
+        Console.map("World to set", map.world.getClass().getName());
+        Greenfoot.setWorld(map.world);
+    }
+
+    /**
+     * Returns the currently shown map. Throws an error if no map is shown.
+     * 
+     * @return The current map
+     */
+    public static final Map getMap() {
+        return ((Map.SupportWorld)WorldHandler.getInstance().getWorld()).map;
     }
 
     /**
@@ -265,9 +278,11 @@ public final class Core  {
     public static final boolean isRunning() {
         try {
             Field paused = Simulation.class.getDeclaredField("paused");
-            paused.trySetAccessible();
-            return (Boolean)paused.get(Simulation.getInstance());
+            //paused.trySetAccessible();
+            paused.setAccessible(true);
+            return !(Boolean)paused.get(Simulation.getInstance());
         } catch(Exception e) {
+            Console.warn("Failed to load run state from framework");
             e.printStackTrace();
             return propablyRunning;
         }
@@ -320,9 +335,9 @@ public final class Core  {
 
 
     /**
-     * Initializes console settings.
+     * Initializes some settings.
      */
-    static final void initializeConsole() {
+    static final void initialize() {
         if(initialized) return;
         initialized = true;
         Console.Config.coloredOutput = false;

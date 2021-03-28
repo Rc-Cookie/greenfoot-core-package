@@ -3,17 +3,25 @@ package com.github.rccookie.greenfoot.core;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import greenfoot.UserInfo;
 import greenfoot.util.GreenfootUtil;
 
+import com.github.rccookie.common.util.Optional;
+
 /**
  * A wrapper class for the {@link UserInfo} class that allowes to create virtual
  * users and contains some conveniance methods.
+ * 
+ * @author RcCookie
+ * @version 1.1
  */
 public class User {
+
+    static {
+        Core.initialize();
+    }
 
     /**
      * The number of avaliable integer slots for {@link #getInt(int)} and
@@ -357,7 +365,7 @@ public class User {
      * @return An optional containing the user with the specified name, or empty
      */
     public static Optional<User> find(String name) {
-        return getTop(-1).stream().filter(u -> Objects.equals(u.getName(), name)).findAny();
+        return Optional.ofNullable(getTop(-1).stream().filter(u -> Objects.equals(u.getName(), name)).findAny().orElse(null));
     }
 
     /**

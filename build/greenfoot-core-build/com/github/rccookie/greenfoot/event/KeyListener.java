@@ -1,10 +1,12 @@
 package com.github.rccookie.greenfoot.event;
+
 import java.util.ArrayList;
 import java.util.EventListener;
 import java.util.List;
 
 import com.github.rccookie.common.event.Time;
 import com.github.rccookie.common.util.Updatable;
+import com.github.rccookie.greenfoot.core.KeyState;
 
 public class KeyListener implements EventListener, Updatable {
 
@@ -32,7 +34,7 @@ public class KeyListener implements EventListener, Updatable {
     @Override
     public void update() {
         boolean temp = down;
-        down = Input.keyState(key);
+        down = KeyState.of(key).pressed;
         if(temp != down) {
             pressed = down;
             released = !down;

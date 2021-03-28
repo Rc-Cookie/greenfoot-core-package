@@ -465,22 +465,22 @@ public final class Raycast {
     public final boolean collided;
 
     /**
-     * A {@link Raycast#RaycastResult2D} containing more detail about the result of the raycast.
+     * A {@link Raycast2D} containing the raw result of the raycast.
      * <p>This may be only {@code null} if the collection of actors passed into the raycasting
      * function were {@code null}.
      */
-    public final Raycast2D result;
+    public final Raycast2D raw;
 
-    private Raycast(Raycast2D result, Actor source, Actor hit) {
+    private Raycast(Raycast2D raw, Actor source, Actor hit) {
         this.hit = hit;
         this.source = source;
-        this.result = result;
+        this.raw = raw;
 
-        root = result.root;
-        hitLoc = result.hitLoc;
-        connection = result.connection;
-        ray = result.ray;
-        length = result.length;
+        root = raw.root;
+        hitLoc = raw.hitLoc;
+        connection = raw.connection;
+        ray = raw.ray;
+        length = raw.length;
         collided = hit != null;
     }
 
@@ -488,7 +488,7 @@ public final class Raycast {
     public boolean equals(Object obj) {
         if(!(obj instanceof Raycast)) return false;
         Raycast o = (Raycast)obj;
-        return Objects.equals(hit, o.hit) && Objects.equals(result, result);
+        return Objects.equals(hit, o.hit) && Objects.equals(raw, raw);
     }
 
     @Override

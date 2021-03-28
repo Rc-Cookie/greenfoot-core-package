@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Objects;
 
-import greenfoot.Color;
+import com.github.rccookie.greenfoot.core.Color;
 
 /**
  * Stores a color theme with differently prioritized colors. If a color lower
