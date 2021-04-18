@@ -5,3 +5,4 @@ maven-archiver
 maven-status
 surefire-reports
 test-classes
+Build.bat
