@@ -1,0 +1,7 @@
+classes
+build
+generated-sources
+maven-archiver
+maven-status
+surfire-reports
+test-classes
