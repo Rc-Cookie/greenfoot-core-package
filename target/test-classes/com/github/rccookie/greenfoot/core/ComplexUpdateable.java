@@ -8,7 +8,7 @@ import com.github.rccookie.common.util.Updateable;
  * @author RcCookie
  * @version 1.0
  */
-public abstract class ComplexUpdateable implements Updateable {
+abstract class ComplexUpdateable implements Updateable {
 
     /**
      * An update that should be called before the other update calls.
@@ -31,4 +31,11 @@ public abstract class ComplexUpdateable implements Updateable {
      * some internal functionallity updates.
      */
     abstract void internalUpdate();
+
+    /**
+     * An update called after the {@link #update()} method and before the
+     * {@link #physicsUpdate()} method that is intended for some internal
+     * functionallity updates.
+     */
+    abstract void lateInternalUpdate();
 }

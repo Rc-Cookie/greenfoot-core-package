@@ -1,20 +1,20 @@
 package com.github.rccookie.greenfoot.core;
 
 import java.lang.reflect.Constructor;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.github.rccookie.common.event.Time;
 import com.github.rccookie.common.geometry.Vector;
-import com.github.rccookie.common.util.Console;
-import com.github.rccookie.common.util.Optional;
 import com.github.rccookie.greenfoot.core.GameObject.SupportActor;
+import com.github.rccookie.greenfoot.java.util.Optional;
+import com.github.rccookie.greenfoot.java.util.function.Predicate;
+import com.github.rccookie.greenfoot.java.util.function.Supplier;
 
 import greenfoot.Actor;
 import greenfoot.GreenfootImage;
@@ -69,7 +69,20 @@ public abstract class Map extends ComplexUpdateable {
      */
     final SupportWorld world;
 
+    /**
+     * The current paint order.
+     */
+    private PaintOrder paintOrder = null;
 
+
+
+    /**
+     * Constructs a new map with a default size of {@code 600}x{@400} pixels
+     * and a cell size of {@code 1}.
+     */
+    public Map() {
+        this(600, 400);
+    }
 
     /**
      * Constructs a new map with the specified dimensions,
@@ -127,7 +140,7 @@ public abstract class Map extends ComplexUpdateable {
 
 
     /**
-     * Adds the given object into this map at the specified coordinates.
+     * Adds the given object into this map at the specified location.
      * 
      * @param object The object to add
      * @param location The location to set the object to
@@ -137,6 +150,19 @@ public abstract class Map extends ComplexUpdateable {
         world.addObject(object.actor, (int)(location.x() + 0.5), (int)(location.y() + 0.5));
         object.map = this;
         object.setLocation(location);
+        updatePaintOrder();
+        object.addedToMap(this);
+    }
+
+    /**
+     * Adds the given object into this map at the specified coordinates.
+     * 
+     * @param object The object to add
+     * @param x The x coordinate to add the object
+     * @param y The y coordinate to add the object
+     */
+    public void add(GameObject object, double x, double y) {
+        add(object, Vector.of(x, y));
     }
 
     /**
@@ -182,6 +208,53 @@ public abstract class Map extends ComplexUpdateable {
 
     public void removeAll(Collection<GameObject> objects) {
         for(GameObject object : objects) remove(object);
+    }
+
+
+
+    public void setPaintOrder(Class<?>... order) {
+        if(order == null || order.length == 0) {
+            if(paintOrder == null) return;
+            paintOrder = null;
+        }
+        else {
+            if(paintOrder instanceof ClassSortedPaintOrder && Arrays.equals(((ClassSortedPaintOrder)paintOrder).order, order)) return;
+            Class<?>[] orderCopy = new Class<?>[order.length];
+            System.arraycopy(order, 0, orderCopy, 0, order.length);
+            paintOrder = new ClassSortedPaintOrder(orderCopy);
+        }
+        updatePaintOrder();
+    }
+
+    public void setPaintOrder(GameObject... order) {
+        if(order == null || order.length == 0) {
+            if(paintOrder == null) return;
+            paintOrder = null;
+        }
+        else {
+            if(paintOrder instanceof InstanceSortedPaintOrder && Arrays.equals(((InstanceSortedPaintOrder)paintOrder).order, order)) return;
+            GameObject[] orderCopy = new GameObject[order.length];
+            System.arraycopy(order, 0, orderCopy, 0, order.length);
+            paintOrder = new InstanceSortedPaintOrder(orderCopy);
+        }
+        updatePaintOrder();
+    }
+
+    public void setPaintOrder(List<GameObject> order) {
+        setPaintOrder(order != null ? order.toArray(new GameObject[0]) : null);
+    }
+
+
+
+    private void updatePaintOrder() {
+        if(paintOrder == null) return; // Objects are not sorted
+        List<GameObject> oldOrder = allStream().collect(Collectors.toList());
+        List<GameObject> newOrderReversed = paintOrder.getInReverseOrder(oldOrder);
+        for(GameObject o : newOrderReversed) {
+            Vector location = o.getLocation();
+            world.removeObject(o.actor);
+            world.addObject(o.actor, (int)(location.x() + 0.5), (int)(location.y() + 0.5));
+        }
     }
 
 
@@ -236,7 +309,7 @@ public abstract class Map extends ComplexUpdateable {
      *         there is any on the map
      */
     public <A> Optional<A> find(Class<A> cls, Predicate<A> requirement) {
-        return Optional.ofNullable(allStream(cls).filter(requirement).findAny().orElse(null));
+        return Optional.ofNullable(allStream(cls).filter(o -> requirement.test(o)).findAny().orElse(null));
     }
 
     /**
@@ -282,7 +355,7 @@ public abstract class Map extends ComplexUpdateable {
      * @return A list of all objects on this map that meet the requirement
      */
     public <A> Set<A> findAll(Class<A> cls, Predicate<A> requirement) {
-        return allStream(cls).filter(requirement).collect(Collectors.toSet());
+        return allStream(cls).filter(o -> requirement.test(o)).collect(Collectors.toSet());
     }
 
 
@@ -381,7 +454,7 @@ public abstract class Map extends ComplexUpdateable {
      * @return All objects that need to be updated in proper update order
      */
     private List<? extends ComplexUpdateable> getInUpdateOrder() {
-        return Stream.concat(Stream.of(this).sorted(), allStream().sorted()).collect(Collectors.toList());
+        return Stream.concat(Stream.of(this), allStream().sequential()).collect(Collectors.toList());
     }
 
     /**
@@ -392,6 +465,7 @@ public abstract class Map extends ComplexUpdateable {
         for(ComplexUpdateable updateTarget : updateTargets) updateTarget.earlyUpdate();
         for(ComplexUpdateable updateTarget : updateTargets) updateTarget.internalUpdate();
         for(ComplexUpdateable updateTarget : updateTargets) updateTarget.update();
+        for(ComplexUpdateable updateTarget : updateTargets) updateTarget.lateInternalUpdate();
         for(ComplexUpdateable updateTarget : updateTargets) updateTarget.physicsUpdate();
         for(ComplexUpdateable updateTarget : updateTargets) updateTarget.lateUpdate();
     }
@@ -399,6 +473,11 @@ public abstract class Map extends ComplexUpdateable {
     @Override
     void internalUpdate() {
         ((NoExternalUpdateTime)time).actualUpdate();
+    }
+
+    @Override
+    void lateInternalUpdate() {
+        
     }
 
     @Override
@@ -496,7 +575,7 @@ public abstract class Map extends ComplexUpdateable {
     @SuppressWarnings("unchecked")
     protected <T> Set<T> findAllFiltered(Class<T> cls, Predicate<GameObject> filter) {
         Objects.requireNonNull(cls);
-        return allStream().filter(o -> cls.isInstance(o)).filter(filter).map(o -> (T)o).collect(Collectors.toSet());
+        return allStream().filter(o -> cls.isInstance(o)).filter(o -> filter.test(o)).map(o -> (T)o).collect(Collectors.toSet());
     }
 
     /**
@@ -584,7 +663,14 @@ public abstract class Map extends ComplexUpdateable {
      */
     public void setBackground(Image image) {
         world.setBackground(Image.asGImage(image));
-        this.image = Image.of(world.getBackground());
+        if(image.getWidth() != getWidth() || image.getHeight() != getHeight()) {
+            // If the image does not fit it will be modified so that in any case
+            // the initially passed instance IS the instance used by the map.
+            image.scale(getWidth(), getHeight());
+            image.clear();
+            image.drawImage(Image.of(world.getBackground()), 0, 0);
+        }
+        this.image = image;
     }
 
 
@@ -604,19 +690,19 @@ public abstract class Map extends ComplexUpdateable {
 
         @Override
         public void act() {
-            Console.info("act");
+            
             map.onAct();
         }
 
         @Override
         public void addObject(Actor object, int x, int y) {
-            Console.info("addObject");
+            
             super.addObject(object, x, y);
         }
 
         @Override
         public GreenfootImage getBackground() {
-            Console.info("getBackground");
+            
             GreenfootImage image = Image.asGImage(map.getBackground());
             if(image == null) {
                 image = new GreenfootImage(getWidth(), getHeight());
@@ -628,104 +714,103 @@ public abstract class Map extends ComplexUpdateable {
 
         @Override
         public int getCellSize() {
-            Console.info("getCellSize");
+            
             return map.getCellSize();
         }
 
         @Override
         public greenfoot.Color getColorAt(int x, int y) {
-            Console.info("getColorAt");
+            
             return Color.asGColor(map.getColorAt(x, y));
         }
 
         @Override
         public int getHeight() {
-            Console.info("getHeight");
+            
             return map.getHeight();
         }
 
         @Override
         public <A> List<A> getObjects(Class<A> cls) {
-            Console.info("getObjects");
+            
             return super.getObjects(cls);
         }
 
         @Override
         public <A> List<A> getObjectsAt(int x, int y, Class<A> cls) {
-            Console.info("getObjectsAt");
+            
             return super.getObjectsAt(x, y, cls);
         }
 
         @Override
         public int numberOfObjects() {
-            Console.info("numberOfObjects");
+            
             return super.numberOfObjects();
         }
 
         @Override
         public int getWidth() {
-            Console.info("getWidth");
+            
             return map.getWidth();
         }
 
         @Override
         public void removeObject(Actor object) {
-            Console.info("removeObject");
             super.removeObject(object);
         }
 
         @Override
         public void removeObjects(Collection<? extends Actor> objects) {
-            Console.info("removeObjects");
+            
             super.removeObjects(objects);
         }
 
         @Override
         public void repaint() {
-            Console.info("repaint");
+            
             map.render();
         }
 
         private void superRepaint() {
-            Console.info("superRepaint");
+            
             super.repaint();
         }
 
         @Override
         @SuppressWarnings("rawtypes")
         public void setActOrder(Class... classes) {
-            Console.info("setActOrder");
+            
             super.setActOrder(classes);
         }
 
         @Override
         @SuppressWarnings("rawtypes")
         public void setPaintOrder(Class... classes) {
-            Console.info("setPaintOrder");
+            
             super.setPaintOrder(classes);
         }
 
         @Override
         public void showText(String text, int x, int y) {
-            Console.info("showText");
+            
             super.showText(text, x, y);
         }
 
         @Override
         public void started() {
-            Console.info("started");
+            
             map.paused();
         }
 
         @Override
         public void stopped() {
-            Console.info("stopped");
+            
             map.started();
         }
 
         @Override
         public String toString() {
-            Console.info("toString");
+            
             return map.toString();
         }
     }
@@ -741,12 +826,14 @@ public abstract class Map extends ComplexUpdateable {
     public static abstract class MapLoader extends World {
 
         private Map map;
-        boolean wasRunning;
+
+        private final boolean startRunning;
 
         public MapLoader() {
             super(600, 400, 1);
             String name = getClass().getSimpleName();
             String className = name.substring(0, name.length() - 6);
+            startRunning = false;
             load(() -> {
                 try {
                     Constructor<?> ctor = Class.forName(className).getDeclaredConstructor();
@@ -765,31 +852,33 @@ public abstract class Map extends ComplexUpdateable {
                 } catch(Exception e) {
                     throw new RuntimeException(e);
                 }
-            });
+            }, false);
         }
 
-        public MapLoader(Supplier<Map> mapGenerator) {
-            this(600, 400, mapGenerator);
+        public MapLoader(Supplier<Map> mapGenerator, boolean startRunning) {
+            this(600, 400, mapGenerator, startRunning);
         }
 
-        public MapLoader(int width, int height, Supplier<Map> mapGenerator) {
+        public MapLoader(int width, int height, Supplier<Map> mapGenerator, boolean startRunning) {
             super(width, height, 1);
+            this.startRunning = startRunning;
             load(mapGenerator);
         }
 
         private final void load(Supplier<Map> mapGenerator) {
-            addObject(GameObject.asActor(Image.text("Loading...", Color.DARK_GRAY, FontStyle.modern(20)).asActor()), getWidth() / 2, getHeight() / 2);
-            //repaint();
+            addObject(GameObject.asActor(Core.isOnline() ?
+                Image.text("Loading...", Color.DARK_GRAY, FontStyle.modern(20)).asGameObject() :
+                Image.text("Loading...\nIf you are offline and continue to see this image, simply\nhit reset. It should only occur whenever the start map's\nname was changed.", Color.DARK_GRAY, FontStyle.modern(20)).asGameObject()
+            ), getWidth() / 2, getHeight() / 2);
             map = mapGenerator.get();
             Core.setMap(map);
             map.render();
-            wasRunning = Core.isRunning();
-            Core.run();
+            if(startRunning || Core.isOnline()) Core.run();
         }
 
         @Override
         public void act() {
-            Core.setRun(wasRunning);
+            Core.setRun(startRunning);
             Core.setMap(map);
             map.render();
         }

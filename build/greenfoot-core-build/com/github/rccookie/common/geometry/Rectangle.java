@@ -28,7 +28,7 @@ public class Rectangle {
 
 
 
-    public Vector2D intersects(Vector point) {
+    public Vector2D intersects(Vector2D point) {
         double hw = size.width() / 2, hh = size.height() / 2;
         Vector2D[] c = {
             new Vector2D(-hw, -hh),

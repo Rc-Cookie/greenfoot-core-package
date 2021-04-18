@@ -794,19 +794,6 @@ public final class Console {
 
 
     static void test() {
-        info("Hello", "World");
-        info((Object)new Object[] {"Hello", "World"});
-        split("Type");
-        info("Hello");
-        warn("Hello");
-        error("Hello");
-        log("Hello");
-        split();
-        //map("Entered", input("Enter something:"));
-        printStackTrace();
-        setProgress(0.5);
-        setProgress(0.75);
-        log();
-        throw new RuntimeException("Some exception");
+        
     }
 }

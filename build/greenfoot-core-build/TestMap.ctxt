@@ -2,8 +2,4 @@
 comment0.target=TestMap
 comment1.params=
 comment1.target=TestMap()
-comment2.params=
-comment2.target=void\ test()
-comment3.params=
-comment3.target=void\ render()
-numComments=4
+numComments=2

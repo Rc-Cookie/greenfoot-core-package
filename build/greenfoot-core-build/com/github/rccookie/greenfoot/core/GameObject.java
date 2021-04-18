@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 
 import greenfoot.Actor;
@@ -19,7 +17,9 @@ import com.github.rccookie.common.geometry.Transform2D;
 import com.github.rccookie.common.geometry.Vector;
 import com.github.rccookie.common.geometry.Vector2D;
 import com.github.rccookie.common.geometry.Vectors;
-import com.github.rccookie.common.util.Optional;
+import com.github.rccookie.greenfoot.util.util.Optional;
+import com.github.rccookie.greenfoot.util.util.function.Consumer;
+import com.github.rccookie.greenfoot.util.util.function.IntPredicate;
 import com.github.rccookie.common.util.Updateable;
 import com.github.rccookie.common.data.json.JsonField;
 import com.github.rccookie.common.data.json.JsonSerializable;
@@ -56,9 +56,28 @@ public abstract class GameObject extends ComplexUpdateable {
 
 
     /**
+     * The default image of an actor, the 'green foot'.
+     */
+    private static final Image DEFAULT_GREENFOOT_IMAGE = Image.of(new Actor() { }.getImage());
+
+    private static final Color DEFAULT_COLOR = Color.LIGHT_GRAY;
+
+    private static final int DEFAULT_IMAGE_SIZE = 20;
+
+    /**
      * The default image of a game object.
      */
-    private static final Image DEFAULT_IMAGE = Image.of(new Actor(){}.getImage());
+    private static final Image DEFAULT_IMAGE = createDefaultImage();
+
+    private static final Image createDefaultImage() {
+        Image image = Image.block(
+            DEFAULT_IMAGE_SIZE,
+            DEFAULT_IMAGE_SIZE,
+            DEFAULT_COLOR
+        );
+        image.drawRect(0, 0, image.getWidth() - 1, image.getHeight() - 1, DEFAULT_COLOR.darker());
+        return image;
+    }
 
 
 
@@ -337,6 +356,7 @@ public abstract class GameObject extends ComplexUpdateable {
 
 
 
+    @Override
     public void earlyUpdate() { }
 
     @Override
@@ -349,6 +369,7 @@ public abstract class GameObject extends ComplexUpdateable {
      */
     protected void physicsUpdate() { }
 
+    @Override
     public void lateUpdate() { }
 
 

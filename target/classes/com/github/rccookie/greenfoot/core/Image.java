@@ -10,11 +10,11 @@ import greenfoot.GreenfootImage;
 
 /**
  * An image that is offline represented by a {@link BufferedImage}. It is
- * based on {@link GreenfootImage} but adds more conveniance methods and
+ * wrapping {@link GreenfootImage} but adds more conveniance methods and
  * support for {@link Color} and {@link FontStyle}.
  * 
  * @author RcCookie
- * @version 2.0
+ * @version 2.1
  */
 public class Image implements Cloneable {
 
@@ -35,7 +35,7 @@ public class Image implements Cloneable {
      * @param height The height of the image
      */
     public Image(int width, int height) {
-        gImage = new SupportGreenfootImage(width, height, this);
+        gImage = new SupportGreenfootImage(width, height);
     }
 
     /**
@@ -44,7 +44,7 @@ public class Image implements Cloneable {
      * @param copy The image to copy
      */
     public Image(Image copy) {
-        gImage = new SupportGreenfootImage(copy.gImage, this);
+        gImage = new SupportGreenfootImage(copy.gImage);
     }
 
     /**
@@ -56,7 +56,7 @@ public class Image implements Cloneable {
      *                 {@code "images/Car.png"}
      */
     public Image(String filename) {
-        gImage = new SupportGreenfootImage(filename, this);
+        gImage = new SupportGreenfootImage(filename);
     }
 
     /**
@@ -70,7 +70,7 @@ public class Image implements Cloneable {
      * @param color The text color
      */
     private Image(String string, int fontsize, Color color) {
-        gImage = new SupportGreenfootImage(string, fontsize, Color.asGColor(color), this);
+        gImage = new SupportGreenfootImage(string, fontsize, Color.asGColor(color));
     }
 
     /**
@@ -80,7 +80,7 @@ public class Image implements Cloneable {
      * @param gImage The greenfootImage to be wrapped.
      */
     private Image(GreenfootImage gImage) {
-        this.gImage = new SupportGreenfootImageWrapper(gImage, this);
+        this.gImage = new SupportGreenfootImageWrapper(gImage);
     }
 
 
@@ -96,8 +96,7 @@ public class Image implements Cloneable {
 
 
     /**
-     * Fills the image with the given color. The initially selected drawing
-     * color will be kept.
+     * Fills the image with the given color.
      * 
      * @param color The color to fill with
      */
@@ -108,7 +107,7 @@ public class Image implements Cloneable {
     /**
      * Fills an oval with the top left corner of its bounding rectangle located
      * at the specified coordinates and with the given width and height, with
-     * the given color. The initially selected drawing color will be kept.
+     * the given color.
      * 
      * @param x The x coordinate of the top loft corner of the ovals bounding
      *          rectangle
@@ -204,10 +203,8 @@ public class Image implements Cloneable {
     }
 
     private void drawWithColor(Runnable operation, Color color) {
-        Color current = getColor();
         setColor(color);
         operation.run();
-        setColor(current);
     }
 
     public void scale(double factor) {
@@ -342,19 +339,21 @@ public class Image implements Cloneable {
 
 
 
-    public GameObject asActor() {
+    public GameObject asGameObject() {
         return new GameObject() { { setImage(Image.this); } };
     }
 
 
 
     public static Image block(int width, int height, Color color) {
+        
         Image image = new Image(width, height);
         image.fill(color);
         return image;
     }
 
     public static Image oval(int width, int height, Color color) {
+        
         Image image = new Image(width, height);
         image.fillOval(0, 0, width, height, color);
         return image;
@@ -381,444 +380,558 @@ public class Image implements Cloneable {
 
 
 
-    private static class SupportGreenfootImage extends GreenfootImage {
+    private class SupportGreenfootImage extends GreenfootImage {
 
-        private final Image image;
 
-        private SupportGreenfootImage(GreenfootImage gImage, Image image) {
+
+        private SupportGreenfootImage(GreenfootImage gImage) {
             super(gImage);
-            this.image = image;
+            
         }
 
-        private SupportGreenfootImage(int width, int height, Image image) {
+        private SupportGreenfootImage(int width, int height) {
             super(width, height);
-            this.image = image;
+            
+            //Console.printStackTrace();
         }
 
-        private SupportGreenfootImage(String string, int fontsize, greenfoot.Color color, Image image) {
+        private SupportGreenfootImage(String string, int fontsize, greenfoot.Color color) {
             super(string, fontsize, color, new greenfoot.Color(0,0,0,0));
-            this.image = image;
+            
         }
 
-        private SupportGreenfootImage(String filename, Image image) {
+        private SupportGreenfootImage(String filename) {
             super(filename);
-            this.image = image;
+            
         }
+
 
         @Override
         public void clear() {
-            image.clear();
+            Image.this.clear();
+            
         }
 
         void superClear() {
             super.clear();
+            
         }
+
 
         @Override
         public void drawImage(GreenfootImage image, int x, int y) {
-            image.drawImage(image, x, y);
+            Image.this.drawImage(of(image), x, y);
+            
         }
 
         void superDrawImage(GreenfootImage image, int x, int y) {
             super.drawImage(image, x, y);
+            
         }
+
 
         @Override
         public void drawLine(int x1, int y1, int x2, int y2) {
-            image.drawLine(x1, y1, x2, y2);
+            Image.this.drawLine(x1, y1, x2, y2);
+            
         }
 
         void superDrawLine(int x1, int y1, int x2, int y2) {
             super.drawLine(x1, y1, x2, y2);
+            
         }
+
 
         @Override
         public void drawOval(int x, int y, int width, int height) {
-            image.drawOval(x, y, width, height);
+            Image.this.drawOval(x, y, width, height);
+            
         }
 
         void superDrawOval(int x, int y, int width, int height) {
             super.drawOval(x, y, width, height);
+            
         }
+
 
         @Override
         public void drawPolygon(int[] xPoints, int[] yPoints, int nPoints) {
-            image.drawPolygon(xPoints, yPoints, nPoints);
+            Image.this.drawPolygon(xPoints, yPoints, nPoints);
+            
         }
 
         void superDrawPolygon(int[] xPoints, int[] yPoints, int nPoints) {
             super.drawPolygon(xPoints, yPoints, nPoints);
+            
         }
+
 
         @Override
         public void drawRect(int x, int y, int width, int height) {
-            image.drawRect(x, y, width, height);
+            Image.this.drawRect(x, y, width, height);
+            
         }
 
         void superDrawRect(int x, int y, int width, int height) {
             super.drawRect(x, y, width, height);
+            
         }
+
 
         @Override
         public void drawShape(Shape shape) {
-            image.drawShape(shape);
+            Image.this.drawShape(shape);
+            
         }
 
         void superDrawShape(Shape shape) {
             super.drawShape(shape);
+            
         }
+
 
         @Override
         public void drawString(String string, int x, int y) {
-            image.drawString(string, x, y);
+            Image.this.drawString(string, x, y);
+            
         }
 
         void superDrawString(String string, int x, int y) {
             super.drawString(string, x, y);
+            
         }
+
 
         @Override
         public boolean equals(Object obj) {
-            return image.equals(obj);
+            
+            return Image.this.equals(obj);
         }
 
         boolean superEquals(Object obj) {
+            
             return super.equals(obj);
         }
 
+        
         @Override
         public void fill() {
-            image.fill();
+            Image.this.fill();
+            
         }
 
         void superFill() {
             super.fill();
+            
         }
+
 
         @Override
         public void fillOval(int x, int y, int width, int height) {
-            image.fillOval(x, y, width, height);
+            Image.this.fillOval(x, y, width, height);
+            
         }
 
         void superFillOval(int x, int y, int width, int height) {
             super.fillOval(x, y, width, height);
+            
         }
+
 
         @Override
         public void fillPolygon(int[] xPoints, int[] yPoints, int nPoints) {
-            image.fillPolygon(xPoints, yPoints, nPoints);
+            Image.this.fillPolygon(xPoints, yPoints, nPoints);
+            
         }
 
         void superFillPolygon(int[] xPoints, int[] yPoints, int nPoints) {
             super.fillPolygon(xPoints, yPoints, nPoints);
+            
         }
+
 
         @Override
         public void fillRect(int x, int y, int width, int height) {
-            image.fillRect(x, y, width, height);
+            Image.this.fillRect(x, y, width, height);
+            
         }
 
         void superFillRect(int x, int y, int width, int height) {
             super.fillRect(x, y, width, height);
+            
         }
+
 
         @Override
         public BufferedImage getAwtImage() {
-            return image.getAwtImage();
+            return gImage != null ? Image.this.getAwtImage() : superGetAwtImage();
         }
 
         BufferedImage superGetAwtImage() {
+            
             return super.getAwtImage();
         }
 
+
         @Override
         public greenfoot.Color getColor() {
-            return Color.asGColor(image.getColor());
+            
+            return Color.asGColor(Image.this.getColor());
         }
 
         greenfoot.Color superGetColor() {
+            
             return super.getColor();
         }
 
+
         @Override
         public greenfoot.Color getColorAt(int x, int y) {
-            return Color.asGColor(image.getColorAt(x, y));
+            
+            return Color.asGColor(Image.this.getColorAt(x, y));
         }
 
         greenfoot.Color superGetColorAt(int x, int y) {
+            
             return super.getColorAt(x, y);
         }
 
+
         @Override
         public Font getFont() {
-            return image.getFont();
+            
+            return Image.this.getFont();
         }
 
         Font superGetFont() {
+            
             return super.getFont();
         }
 
+
         @Override
         public int getHeight() {
-            return image.getHeight();
+            return gImage != null ? Image.this.getHeight() : superGetHeight();
         }
 
         int superGetHeight() {
+            
             return super.getHeight();
         }
 
+
         @Override
         public int getTransparency() {
-            return image.getTransparency();
+            
+            return Image.this.getTransparency();
         }
 
         int superGetTransparency() {
+            
             return super.getTransparency();
         }
 
+
         @Override
         public int getWidth() {
-            return image.getWidth();
+            return gImage != null ? Image.this.getWidth() : superGetWidth();
         }
 
         int superGetWidth() {
+            
             return super.getWidth();
         }
 
+
         @Override
         public int hashCode() {
-            return image.hashCode();
+            
+            return Image.this.hashCode();
         }
 
         int superHashCode() {
+            
             return super.hashCode();
         }
 
+
         @Override
         public void mirrorHorizontally() {
-            image.mirrorHorizontally();
+            
+            Image.this.mirrorHorizontally();
         }
 
         void superMirrorHorizontally() {
+            
             super.mirrorHorizontally();
         }
 
+
         @Override
         public void mirrorVertically() {
-            image.mirrorVertically();
+            
+            Image.this.mirrorVertically();
         }
 
         void superMirrorVertically() {
+            
             super.mirrorVertically();
         }
 
+
         @Override
         public void rotate(int degrees) {
-            image.rotate(degrees);
+            
+            Image.this.rotate(degrees);
         }
 
         void superRotate(int degrees) {
+            
             super.rotate(degrees);
         }
 
+
         @Override
         public void scale(int width, int height) {
-            image.scale(width, height);
+            
+            Image.this.scale(width, height);
         }
 
         void superScale(int width, int height) {
+            
             super.scale(width, height);
         }
 
+
         @Override
         public void setColor(greenfoot.Color color) {
-            image.setColor(Color.of(color));
+            
+            Image.this.setColor(Color.of(color));
         }
 
         void superSetColor(greenfoot.Color color) {
+            
             super.setColor(color);
         }
 
+
         @Override
         public void setColorAt(int x, int y, greenfoot.Color color) {
-            image.setColorAt(x, y, Color.of(color));
+            
+            Image.this.setColorAt(x, y, Color.of(color));
         }
 
         void superSetColorAt(int x, int y, greenfoot.Color color) {
+            
             super.setColorAt(x, y, color);
         }
 
+
         @Override
         public void setFont(Font f) {
-            image.setFont(FontStyle.of(f));
+            
+            Image.this.setFont(FontStyle.of(f));
         }
 
         void superSetFont(Font f) {
+            
             super.setFont(f);
         }
 
+
         @Override
         public void setTransparency(int t) {
-            image.setTransparency(t);
+            
+            Image.this.setTransparency(t);
         }
 
         void superSetTransparency(int t) {
+            
             super.setTransparency(t);
         }
     }
 
 
-    private static class SupportGreenfootImageWrapper extends SupportGreenfootImage {
+    private class SupportGreenfootImageWrapper extends SupportGreenfootImage {
 
         private final GreenfootImage wrapped;
 
-        private SupportGreenfootImageWrapper(GreenfootImage wrapped, Image image) {
-            super(1, 1, image);
+        private SupportGreenfootImageWrapper(GreenfootImage wrapped) {
+            super(1, 1);
             this.wrapped = wrapped;
         }
 
         @Override
         void superClear() {
+            
             wrapped.clear();
         }
 
         @Override
         void superDrawImage(GreenfootImage image, int x, int y) {
+            
             wrapped.drawImage(image, x, y);
         }
 
         @Override
         void superDrawLine(int x1, int y1, int x2, int y2) {
+            
             wrapped.drawLine(x1, y1, x2, y2);
         }
 
         @Override
         void superDrawOval(int x, int y, int width, int height) {
+            
             wrapped.drawOval(x, y, width, height);
         }
 
         @Override
         void superDrawPolygon(int[] xPoints, int[] yPoints, int nPoints) {
+            
             wrapped.drawPolygon(xPoints, yPoints, nPoints);
         }
 
         @Override
         void superDrawRect(int x, int y, int width, int height) {
+            
             wrapped.drawRect(x, y, width, height);
         }
 
         @Override
         void superDrawShape(Shape shape) {
+            
             wrapped.drawShape(shape);
         }
 
         @Override
         void superDrawString(String string, int x, int y) {
+            
             wrapped.drawString(string, x, y);
         }
 
         @Override
         boolean superEquals(Object obj) {
+            
             return wrapped.equals(obj);
         }
 
         @Override
         void superFill() {
+            
             wrapped.fill();
         }
 
         @Override
         void superFillOval(int x, int y, int width, int height) {
+            
             wrapped.fillOval(x, y, width, height);
         }
 
         @Override
         void superFillPolygon(int[] xPoints, int[] yPoints, int nPoints) {
+            
             wrapped.fillPolygon(xPoints, yPoints, nPoints);
         }
 
         @Override
         void superFillRect(int x, int y, int width, int height) {
+            
             wrapped.fillRect(x, y, width, height);
         }
 
         @Override
         BufferedImage superGetAwtImage() {
+            
             return wrapped.getAwtImage();
         }
 
         @Override
         greenfoot.Color superGetColor() {
+            
             return wrapped.getColor();
         }
 
         @Override
         greenfoot.Color superGetColorAt(int x, int y) {
+            
             return wrapped.getColorAt(x, y);
         }
 
         @Override
         Font superGetFont() {
+            
             return wrapped.getFont();
         }
 
         @Override
         int superGetHeight() {
+            
             return wrapped.getHeight();
         }
 
         @Override
         int superGetTransparency() {
+            
             return wrapped.getTransparency();
         }
 
         @Override
         int superGetWidth() {
+            
             return wrapped.getWidth();
         }
 
         @Override
         int superHashCode() {
+            
             return wrapped.hashCode();
         }
 
         @Override
         void superMirrorHorizontally() {
+            
             wrapped.mirrorHorizontally();
         }
 
         @Override
         void superMirrorVertically() {
+            
             wrapped.mirrorVertically();
         }
 
         @Override
         void superRotate(int degrees) {
+            
             wrapped.rotate(degrees);
         }
 
         @Override
         void superScale(int width, int height) {
+            
             wrapped.scale(width, height);
         }
 
         @Override
         void superSetColor(greenfoot.Color color) {
+            
             wrapped.setColor(color);
         }
 
         @Override
         void superSetColorAt(int x, int y, greenfoot.Color color) {
+            
             wrapped.setColorAt(x, y, color);
         }
 
         @Override
         void superSetFont(Font f) {
+            
             wrapped.setFont(f);
         }
 
         @Override
         void superSetTransparency(int t) {
+            
             wrapped.setTransparency(t);
         }
     }

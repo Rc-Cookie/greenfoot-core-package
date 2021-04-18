@@ -465,7 +465,7 @@ public interface Vector extends Cloneable, Saveable {
      * 
      * @param vectors The vectors to add
      * @return A copy of this vectors with the vectors added
-     * @see #add(AbstractVector...)
+     * @see #add(Vector...)
      * @see #clone()
      */
     public Vector added(Vector... vectors);
@@ -475,7 +475,7 @@ public interface Vector extends Cloneable, Saveable {
      * 
      * @param vectors The vectors to subtract
      * @return A copy of this vectors with the vectors subtracted
-     * @see #subtract(AbstractVector...)
+     * @see #subtract(Vector...)
      * @see #clone()
      */
     public Vector subtracted(Vector...vectors);

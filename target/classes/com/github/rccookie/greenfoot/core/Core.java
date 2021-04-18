@@ -1,5 +1,6 @@
 package com.github.rccookie.greenfoot.core;
 
+import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
 
 import com.github.rccookie.common.util.Console;
@@ -24,25 +25,36 @@ public final class Core  {
      * and does not have all classes that java has. Therefore special handling when
      * operating online max be helpful or neccecary.
      */
-    private static final boolean IS_ONLINE;
+    private static final boolean IS_ONLINE = testOnline();
 
-    static {
+    private static final boolean testOnline() {
+        initialize(); // To format console output
+
         boolean isOnline = false;
         // Simple test that will throw an exception when online due to missing class
         // If offline this will do nothing else than some console settings
         try {
-            System.setErr(Console.CONSOLE_ERROR_STREAM);
+            onlineTestCommand();
+            Console.split("Offline session");
         } catch(Exception e) {
             isOnline = true;
-            System.out.println("Online session (Exception)");
+            Console.split("Online session");
             e.printStackTrace();
         } catch(Error e) {
             isOnline = true;
-            System.out.println("Online session (Error)");
+            Console.split("Online session (Error - this is weird...)");
             e.printStackTrace();
         }
-        IS_ONLINE = isOnline;
+        return isOnline;
     }
+
+    private static final void onlineTestCommand() throws Exception, Error {
+        // If this works there is basically no need to differ between online and
+        // offline anyways.
+        new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+    }
+
+
 
     private static Boolean onlineOverride = null;
 
@@ -221,7 +233,7 @@ public final class Core  {
      * @param map The map to show
      */
     public static final void setMap(Map map) {
-        Console.map("World to set", map.world.getClass().getName());
+        Console.mapDebug("World to set", map.world.getClass().getName());
         Greenfoot.setWorld(map.world);
     }
 
@@ -268,6 +280,7 @@ public final class Core  {
     public static final void setRun(boolean flag) {
         Simulation.getInstance().setPaused(!flag);
         propablyRunning = flag;
+        Console.mapDebug("Now running", flag);
     }
 
     /**
@@ -278,7 +291,6 @@ public final class Core  {
     public static final boolean isRunning() {
         try {
             Field paused = Simulation.class.getDeclaredField("paused");
-            //paused.trySetAccessible();
             paused.setAccessible(true);
             return !(Boolean)paused.get(Simulation.getInstance());
         } catch(Exception e) {
@@ -345,11 +357,11 @@ public final class Core  {
         try {
             System.setErr(Console.CONSOLE_ERROR_STREAM);
         } catch(Exception e) {
-            System.out.println("Exception");
-            e.printStackTrace();
+            //System.out.println("Exception");
+            //e.printStackTrace();
         } catch(Error e) {
-            System.out.println("Error");
-            e.printStackTrace();
+            //System.out.println("Error");
+            //e.printStackTrace();
         }
     }
 }

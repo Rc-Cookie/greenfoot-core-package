@@ -3,7 +3,7 @@ package com.github.rccookie.greenfoot.core;
 import java.lang.reflect.Field;
 import java.util.Set;
 
-import com.github.rccookie.common.util.Optional;
+import com.github.rccookie.greenfoot.java.util.Optional;
 
 import greenfoot.Greenfoot;
 import greenfoot.core.WorldHandler;
@@ -30,7 +30,7 @@ public class KeyState {
     /**
      * Weather the key is pressed down.
      */
-    public final boolean pressed;
+    public final boolean down;
 
     /**
      * Weather this key state was emulated directly using
@@ -56,7 +56,7 @@ public class KeyState {
      */
     private KeyState(String key, boolean pressed, boolean emulated) {
         this.key = key;
-        this.pressed = pressed;
+        this.down = pressed;
         this.emulated = emulated;
     }
 

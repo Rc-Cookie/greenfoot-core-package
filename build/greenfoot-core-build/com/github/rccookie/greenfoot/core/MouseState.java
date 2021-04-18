@@ -3,7 +3,7 @@ package com.github.rccookie.greenfoot.core;
 import com.github.rccookie.common.geometry.Vector;
 import com.github.rccookie.common.geometry.Vector2D;
 import com.github.rccookie.common.geometry.Vectors;
-import com.github.rccookie.common.util.Optional;
+import com.github.rccookie.greenfoot.util.util.Optional;
 
 import greenfoot.Actor;
 import greenfoot.Greenfoot;

@@ -2,10 +2,9 @@ package com.github.rccookie.greenfoot.core;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 
 import greenfoot.Actor;
@@ -14,12 +13,13 @@ import greenfoot.GreenfootImage;
 import greenfoot.World;
 
 import com.github.rccookie.greenfoot.core.GameObject;
-import com.github.rccookie.greenfoot.core.Map.SupportWorld;
+import com.github.rccookie.greenfoot.java.util.Optional;
+import com.github.rccookie.greenfoot.java.util.function.Consumer;
+import com.github.rccookie.greenfoot.java.util.function.IntPredicate;
 import com.github.rccookie.common.geometry.Transform2D;
 import com.github.rccookie.common.geometry.Vector;
 import com.github.rccookie.common.geometry.Vector2D;
 import com.github.rccookie.common.geometry.Vectors;
-import com.github.rccookie.common.util.Optional;
 import com.github.rccookie.common.util.Updateable;
 import com.github.rccookie.common.data.json.JsonField;
 import com.github.rccookie.common.data.json.JsonSerializable;
@@ -56,9 +56,29 @@ public abstract class GameObject extends ComplexUpdateable {
 
 
     /**
+     * The default image of an actor, the 'green foot'.
+     */
+    @SuppressWarnings("unused")
+    private static final Image DEFAULT_GREENFOOT_IMAGE = Image.of(new Actor() { }.getImage());
+
+    private static final Color DEFAULT_COLOR = Color.LIGHT_GRAY;
+
+    private static final int DEFAULT_IMAGE_SIZE = 20;
+
+    /**
      * The default image of a game object.
      */
-    private static final Image DEFAULT_IMAGE = Image.of(new Actor(){}.getImage());
+    private static final Image DEFAULT_IMAGE = createDefaultImage();
+
+    private static final Image createDefaultImage() {
+        Image image = Image.block(
+            DEFAULT_IMAGE_SIZE,
+            DEFAULT_IMAGE_SIZE,
+            DEFAULT_COLOR
+        );
+        image.drawRect(0, 0, image.getWidth() - 1, image.getHeight() - 1, DEFAULT_COLOR.darker());
+        return image;
+    }
 
 
 
@@ -118,10 +138,17 @@ public abstract class GameObject extends ComplexUpdateable {
      */
     private String id = null;
 
+
+
     /**
      * Actions to perform on every frame.
      */
     private final List<Runnable> onUpdate = new ArrayList<>();
+
+    /**
+     * Actions to perform later on every frame.
+     */
+    private final List<Runnable> onLateUpdate = new ArrayList<>();
 
 
 
@@ -153,7 +180,7 @@ public abstract class GameObject extends ComplexUpdateable {
      */
     public GameObject() {
         addOnUpdate(() -> ((NoExternalUpdateTime)time).actualUpdate());
-        addOnUpdate(() -> fixedMove(velocity));
+        addOnLateUpdate(() -> fixedMove(velocity));
         setImage(new Image(DEFAULT_IMAGE));
     }
 
@@ -175,6 +202,30 @@ public abstract class GameObject extends ComplexUpdateable {
      */
     public Image getImage() {
         return image;
+    }
+
+    /**
+     * Returns the current width of this object, that is defined by the
+     * width of its image. If this object currently does not have an image,
+     * {@code 0} will be returned.
+     * 
+     * @return The width of this object
+     */
+    public int getWidth() {
+        Image image = getImage();
+        return image != null ? image.getWidth() : 0;
+    }
+
+    /**
+     * Returns the current height of this object, that is defined by the
+     * height of its image. If this object currently does not have an image,
+     * {@code 0} will be returned.
+     * 
+     * @return The height of this object
+     */
+    public int getHeight() {
+        Image image = getImage();
+        return image != null ? image.getHeight() : 0;
     }
 
     /**
@@ -250,7 +301,7 @@ public abstract class GameObject extends ComplexUpdateable {
     @SuppressWarnings("unchecked")
     protected <A> Optional<A> findIntersecting(Class<A> cls) {
         Objects.requireNonNull(cls);
-        return Optional.ofNullable(((World)null).getObjects(SupportActor.class)
+        return Optional.ofNullable(actor.getWorld().getObjects(SupportActor.class)
                             .stream()
                             .map(a -> a.gameObject)
                             .filter(o -> cls.isInstance(o))
@@ -337,6 +388,7 @@ public abstract class GameObject extends ComplexUpdateable {
 
 
 
+    @Override
     public void earlyUpdate() { }
 
     @Override
@@ -349,6 +401,7 @@ public abstract class GameObject extends ComplexUpdateable {
      */
     protected void physicsUpdate() { }
 
+    @Override
     public void lateUpdate() { }
 
 
@@ -424,20 +477,34 @@ public abstract class GameObject extends ComplexUpdateable {
 
 
 
+    @Override
     void internalUpdate() {
         handleMouseInteractions();
         handleUpdateListeners();
     }
 
+    @Override
+    void lateInternalUpdate() {
+        handleLateUpdateListeners();
+    }
+
     private void handleMouseInteractions() {
-        MouseState mouse = MouseState.get();
-        hovered = mouse != null ? ActorVisitor.containsPoint(actor, (int)mouse.location.x() * getMap().get().getCellSize(), (int)mouse.location.y() * getMap().get().getCellSize()) : false;
-        if(hovered && MouseState.pressed(actor)) onPress();
-        else if(pressed && MouseState.released(null)) onRelease();
+        try {
+            MouseState mouse = MouseState.get();
+            hovered = mouse != null ? ActorVisitor.containsPoint(actor, (int)mouse.location.x() * getMap().get().getCellSize(), (int)mouse.location.y() * getMap().get().getCellSize()) : false;
+            if(hovered && MouseState.pressed(actor)) onPress();
+            else if(pressed && MouseState.released(null)) onRelease();
+        } catch(NoSuchElementException e) {
+            // Not sure why this can happen...
+        }
     }
 
     private void handleUpdateListeners() {
         for(Runnable listener : onUpdate) listener.run();
+    }
+
+    private void handleLateUpdateListeners() {
+        for(Runnable listener : onLateUpdate) listener.run();
     }
 
 
@@ -938,6 +1005,18 @@ public abstract class GameObject extends ComplexUpdateable {
     }
 
     /**
+     * Adds the given action to be executes whenever the object gets added to a
+     * different map.
+     * 
+     * @param action The action to add
+     * @return This object
+     */
+    public GameObject addOnAdd(Runnable action) {
+        Objects.requireNonNull(action);
+        return addOnAdd(m -> action.run());
+    }
+
+    /**
      * Removes the given action from those that will be executes whenever the object
      * gets added to a different map.
      * 
@@ -962,12 +1041,12 @@ public abstract class GameObject extends ComplexUpdateable {
     }
 
     /**
-     * Adds the given updateable that will be updated during every update sequence.
+     * Registers the given updateable to be updated by this game object.
      * 
      * @param updateable The updateable to add
      * @return This object
      */
-    public GameObject addUpdatable(Updateable updatable) {
+    public GameObject register(Updateable updatable) {
         if(updatable == null) return this;
         return addOnUpdate(() -> updatable.update());
     }
@@ -982,6 +1061,45 @@ public abstract class GameObject extends ComplexUpdateable {
     public GameObject removeUpdateListener(Runnable listener) {
         onUpdate.remove(listener);
         return this;
+    }
+
+    /**
+     * Adds the given action that will be executed later during every update sequence.
+     * 
+     * @param action The action to add
+     * @return This object
+     */
+    public GameObject addOnLateUpdate(Runnable action) {
+        if(action == null) return this;
+        onLateUpdate.add(action);
+        return this;
+    }
+
+    /**
+     * Registers the given updateable to be updated later by this game object.
+     * 
+     * @param updateable The updateable to add
+     * @return This object
+     */
+    public GameObject registerLate(Updateable updatable) {
+        if(updatable == null) return this;
+        return addOnLateUpdate(() -> updatable.update());
+    }
+
+    /**
+     * Removes the given action from those that will be executed later during every update
+     * sequence.
+     * 
+     * @param action The action to remove
+     * @return This object
+     */
+    public GameObject removeLateUpdateListener(Runnable listener) {
+        onLateUpdate.remove(listener);
+        return this;
+    }
+
+    void addedToMap(Map map) {
+        for(Consumer<Map> action : onAdd) action.accept(map);
     }
 
 
@@ -1014,17 +1132,12 @@ public abstract class GameObject extends ComplexUpdateable {
 
         @Override
         public void act() {
-            gameObject.earlyUpdate();
-            gameObject.internalUpdate();
-            gameObject.update();
-            gameObject.physicsUpdate();
-            gameObject.lateUpdate();
+            // Nothing - handled by the map to allow for more customization in update order
         }
 
         @Override
         protected void addedToWorld(World world) {
-            gameObject.transform.location.set(super.getX(), super.getY());
-            for(Consumer<Map> action : gameObject.onAdd) action.accept(((SupportWorld)world).map);
+            // Nothing - handled by the map to first set the exact added position and then call this stuff
         }
 
         @Override
@@ -1092,9 +1205,17 @@ public abstract class GameObject extends ComplexUpdateable {
             return (int)(gameObject.getX() + 0.5);
         }
 
+        int superGetX() {
+            return super.getX();
+        }
+
         @Override
         public int getY() {
             return (int)(gameObject.getY() + 0.5);
+        }
+
+        int superGetY() {
+            return super.getY();
         }
 
         @Override

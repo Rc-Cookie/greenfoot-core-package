@@ -49,6 +49,7 @@ public abstract class UIWorld extends CoreWorld {
 
     public UIWorld(int width, int height) {
         this(width, height, 1);
+        bluej.Boot
     }
 
     public UIWorld(int x, int y, int cellSize){

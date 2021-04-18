@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 import greenfoot.UserInfo;
 import greenfoot.util.GreenfootUtil;
 
-import com.github.rccookie.common.util.Optional;
+import com.github.rccookie.greenfoot.util.util.Optional;
 
 /**
  * A wrapper class for the {@link UserInfo} class that allowes to create virtual

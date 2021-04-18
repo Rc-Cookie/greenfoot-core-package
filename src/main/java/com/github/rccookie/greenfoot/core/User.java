@@ -5,10 +5,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import com.github.rccookie.greenfoot.java.util.Optional;
+
 import greenfoot.UserInfo;
 import greenfoot.util.GreenfootUtil;
-
-import com.github.rccookie.common.util.Optional;
 
 /**
  * A wrapper class for the {@link UserInfo} class that allowes to create virtual
@@ -220,6 +220,35 @@ public class User {
     public void setScore(int score) {
         this.score = score;
         userInfo.setScore(score);
+    }
+
+    /**
+     * Updates the user's score with the given score value. This means that it will
+     * set the given score if it is more than the current score.
+     * 
+     * @param score The score to update the current score with
+     * @param store Weather the changes should be stored instantly
+     * @return Weather the given score was a new highscore
+     */
+    public boolean updateScore(int score, boolean store) {
+        if(score > getScore()) {
+            setScore(score);
+            if(store) store();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Updates the user's score with the given score value. This means that it will
+     * set the given score if it is more than the current score. It that case this
+     * change will instantly be saved to the server / file.
+     * 
+     * @param score The score to update the current score with
+     * @return Weather the given score was a new highscore
+     */
+    public boolean updateScore(int score) {
+        return updateScore(score, true);
     }
 
     /**

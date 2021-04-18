@@ -2,8 +2,4 @@
 comment0.target=TestMapLoader
 comment1.params=
 comment1.target=TestMapLoader()
-comment2.params=
-comment2.target=void\ test()
-comment3.params=
-comment3.target=greenfoot.GreenfootImage\ getBackground()
-numComments=4
+numComments=2

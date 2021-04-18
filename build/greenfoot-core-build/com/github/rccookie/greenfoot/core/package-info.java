@@ -16,9 +16,9 @@
  * <table>
  * <tr><th>Greenfoot package<th>Core package
  * <tr><td>Actor<td>GameObject
- * <tr><td>World<td>Map
+ * <tr><td>World<td>Map (subclass)
  * <tr><td>GreenfootImage<td>Image
- * <tr><td>greenfoot.Color<td>..core.Color
+ * <tr><td>greenfoot.Color<td>Color
  * <tr><td>Font<td>FontStyle (subclass)
  * <tr><td>UserInfo<td>User
  * <tr><td>MouseInfo<td>MouseState
