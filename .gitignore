@@ -3,5 +3,5 @@ build
 generated-sources
 maven-archiver
 maven-status
-surfire-reports
+surefire-reports
 test-classes
