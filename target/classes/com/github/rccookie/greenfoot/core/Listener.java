@@ -1,10 +1,10 @@
 package com.github.rccookie.greenfoot.core;
 
 import java.util.Objects;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 import com.github.rccookie.common.util.Updateable;
-import com.github.rccookie.greenfoot.java.util.function.BooleanSupplier;
-import com.github.rccookie.greenfoot.java.util.function.Consumer;
 
 public class Listener implements Updateable {
 

@@ -1,6 +1,6 @@
 package com.github.rccookie.greenfoot.core;
 
-import com.github.rccookie.greenfoot.java.util.function.Consumer;
+import java.util.function.Consumer;
 
 public class KeyListener extends Listener {
 

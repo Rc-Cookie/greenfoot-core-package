@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 
 import greenfoot.Actor;
@@ -14,8 +16,6 @@ import greenfoot.World;
 
 import com.github.rccookie.greenfoot.core.GameObject;
 import com.github.rccookie.greenfoot.java.util.Optional;
-import com.github.rccookie.greenfoot.java.util.function.Consumer;
-import com.github.rccookie.greenfoot.java.util.function.IntPredicate;
 import com.github.rccookie.common.geometry.Transform2D;
 import com.github.rccookie.common.geometry.Vector;
 import com.github.rccookie.common.geometry.Vector2D;

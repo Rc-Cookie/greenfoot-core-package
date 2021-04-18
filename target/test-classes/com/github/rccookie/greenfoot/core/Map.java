@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -13,8 +15,6 @@ import com.github.rccookie.common.event.Time;
 import com.github.rccookie.common.geometry.Vector;
 import com.github.rccookie.greenfoot.core.GameObject.SupportActor;
 import com.github.rccookie.greenfoot.java.util.Optional;
-import com.github.rccookie.greenfoot.java.util.function.Predicate;
-import com.github.rccookie.greenfoot.java.util.function.Supplier;
 
 import greenfoot.Actor;
 import greenfoot.GreenfootImage;
