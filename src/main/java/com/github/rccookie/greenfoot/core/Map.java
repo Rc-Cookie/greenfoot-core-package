@@ -6,13 +6,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.github.rccookie.common.event.Time;
-import com.github.rccookie.common.geometry.Vector;
+import com.github.rccookie.event.Time;
+import com.github.rccookie.geometry.Vector;
 import com.github.rccookie.greenfoot.core.GameObject.SupportActor;
 import com.github.rccookie.greenfoot.java.util.Optional;
 
@@ -38,6 +40,9 @@ public abstract class Map extends ComplexUpdateable {
     static {
         Core.initialize();
     }
+
+    public static final int DEFAULT_WIDTH = 600;
+    public static final int DEFAULT_HEIGHT = 400;
 
     /**
      * An instance of {@link Time} that is automatically being
@@ -81,7 +86,7 @@ public abstract class Map extends ComplexUpdateable {
      * and a cell size of {@code 1}.
      */
     public Map() {
-        this(600, 400);
+        this(DEFAULT_WIDTH, DEFAULT_HEIGHT);
     }
 
     /**
@@ -819,6 +824,17 @@ public abstract class Map extends ComplexUpdateable {
 
     public static World asWorld(Map map) {
         return map.world;
+    }
+
+    public static void executeOnCurrent(Consumer<Map> command) {
+        executeOnCurrent(m -> {
+            command.accept(m);
+            return null;
+        });
+    }
+
+    public static <R> R executeOnCurrent(Function<Map, R> command) {
+        return command.apply(Core.getMap());
     }
 
 
