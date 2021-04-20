@@ -1,6 +1,6 @@
 package com.github.rccookie.greenfoot.core;
 
-import com.github.rccookie.common.event.Time;
+import com.github.rccookie.event.Time;
 
 /**
  * A package-protected time that cannot me updated using {@link #update()} to

@@ -1,6 +1,6 @@
 package com.github.rccookie.greenfoot.core;
 
-import com.github.rccookie.common.util.Updateable;
+import com.github.rccookie.util.Updateable;
 
 /**
  * Base class for both {@link GameObject} and {@link Map}.

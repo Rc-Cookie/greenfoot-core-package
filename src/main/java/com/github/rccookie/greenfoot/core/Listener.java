@@ -4,7 +4,7 @@ import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
-import com.github.rccookie.common.util.Updateable;
+import com.github.rccookie.util.Updateable;
 
 public class Listener implements Updateable {
 

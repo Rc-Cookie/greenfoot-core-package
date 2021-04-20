@@ -1,8 +1,8 @@
 package com.github.rccookie.greenfoot.core;
 
-import com.github.rccookie.common.geometry.Vector;
-import com.github.rccookie.common.geometry.Vector2D;
-import com.github.rccookie.common.geometry.Vectors;
+import com.github.rccookie.geometry.Vector;
+import com.github.rccookie.geometry.Vector2D;
+import com.github.rccookie.geometry.Vectors;
 import com.github.rccookie.greenfoot.java.util.Optional;
 
 import greenfoot.Actor;
