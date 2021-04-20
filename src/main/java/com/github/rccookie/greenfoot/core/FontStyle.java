@@ -1,5 +1,7 @@
 package com.github.rccookie.greenfoot.core;
 
+import java.util.Objects;
+
 import greenfoot.Font;
 
 /**
@@ -73,6 +75,18 @@ public abstract class FontStyle extends Font {
                 return FontStyle.this.getCharWidth(c);
             }
         };
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(obj == this) return true;
+        if(!(obj instanceof FontStyle)) return false;
+        FontStyle f = (FontStyle)obj;
+        return Objects.equals(getName(), f.getName())
+            && isBold() == f.isBold()
+            && isItalic() == f.isItalic()
+            && newLineDim == f.newLineDim
+            && onlineScale == f.onlineScale;
     }
 
 
