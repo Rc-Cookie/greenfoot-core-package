@@ -16,14 +16,14 @@ import greenfoot.World;
 
 import com.github.rccookie.greenfoot.core.GameObject;
 import com.github.rccookie.greenfoot.java.util.Optional;
-import com.github.rccookie.common.geometry.Transform2D;
-import com.github.rccookie.common.geometry.Vector;
-import com.github.rccookie.common.geometry.Vector2D;
-import com.github.rccookie.common.geometry.Vectors;
-import com.github.rccookie.common.util.Updateable;
-import com.github.rccookie.common.data.json.JsonField;
-import com.github.rccookie.common.data.json.JsonSerializable;
-import com.github.rccookie.common.event.Time;
+import com.github.rccookie.util.Updateable;
+import com.github.rccookie.data.json.JsonField;
+import com.github.rccookie.data.json.JsonSerializable;
+import com.github.rccookie.geometry.Transform2D;
+import com.github.rccookie.geometry.Vector;
+import com.github.rccookie.geometry.Vector2D;
+import com.github.rccookie.geometry.Vectors;
+import com.github.rccookie.event.Time;
 
 /**
  * A GameObject is an an object that can be on a {@link Map}. It is based on {@link Actor} sharing all its common
@@ -181,7 +181,7 @@ public abstract class GameObject extends ComplexUpdateable {
     public GameObject() {
         addOnUpdate(() -> ((NoExternalUpdateTime)time).actualUpdate());
         addOnLateUpdate(() -> fixedMove(velocity));
-        setImage(new Image(DEFAULT_IMAGE));
+        setImage(DEFAULT_IMAGE.clone());
     }
 
 
@@ -383,7 +383,7 @@ public abstract class GameObject extends ComplexUpdateable {
      */
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " at " + getLocation();
+        return getClass().getSimpleName() + (getMap().isEmpty() ? "" : " at " + getLocation());
     }
 
 
@@ -1261,7 +1261,7 @@ public abstract class GameObject extends ComplexUpdateable {
 
         @Override
         public void setImage(String filename) throws IllegalArgumentException {
-            gameObject.setImage(new Image(filename));
+            gameObject.setImage(Image.load(filename));
             super.setImage(getImage());
         }
 
