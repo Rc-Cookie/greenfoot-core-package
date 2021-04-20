@@ -2,13 +2,15 @@ package com.github.rccookie.greenfoot.core;
 
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
-import com.github.rccookie.common.util.Console;
+import com.github.rccookie.util.Console;
 
 import greenfoot.Greenfoot;
 import greenfoot.World;
 import greenfoot.core.Simulation;
 import greenfoot.core.WorldHandler;
+import greenfoot.event.SimulationListener.AsyncEvent;
 
 /**
  * Utility class to work with the simulation and more, for example getting random numbers.
@@ -30,11 +32,15 @@ public final class Core  {
     private static final boolean testOnline() {
         initialize(); // To format console output
 
+        int oldWidth = Console.Config.manualConsoleWidth;
+        Console.Config.manualConsoleWidth = 150;
+
         boolean isOnline = false;
         // Simple test that will throw an exception when online due to missing class
         // If offline this will do nothing else than some console settings
         try {
             onlineTestCommand();
+            Console.Config.manualConsoleWidth = oldWidth;
             Console.split("Offline session");
         } catch(Exception e) {
             isOnline = true;
@@ -58,7 +64,11 @@ public final class Core  {
 
     private static Boolean onlineOverride = null;
 
-
+    /**
+     * The factor the target speed has to be scaled with to reach online the
+     * same fps as offline.
+     */
+    public static final double ONLINE_SPEED_FACTOR = 1.1;
 
     /**
      * Weather the console settings have yet been initialized.
@@ -200,12 +210,12 @@ public final class Core  {
      * @param speed The speed to set
      */
     public static final void setSpeed(double speed) {
-        if(speed < 0) pause();
+        if(speed <= 0) pause();
         else Greenfoot.setSpeed(Math.min(100, (int)(speed * 100)));
     }
 
     /**
-     * Sets the simulation speed (the frequency of act() calls) to the given value.
+     * Sets the simulation speed (the frequency of update() calls) to the given value.
      * {@code 100} means unlimited, {@code 1} is the slowest. Values less or equal to
      * {@code 0} will pause the scenario and leave the actual speed unchanged, other
      * values will <b>not</b> start it again! Values higher than {@code 100} will be
@@ -215,6 +225,61 @@ public final class Core  {
      */
     public static final void setIntSpeed(int speed) {
         setSpeed(speed / 100d);
+    }
+
+    /**
+     * Sets the simulation speed (the frequency of update() calls) to render with the
+     * given framerate. The specified framerate can only be targeted, if the executing
+     * machine cannot run the scenario at the given framerate it will throttle down
+     * accordingly. Also the specified framerate may not be the exact framerate targeted
+     * exactly but rather a slightly higher one due to limitations of Greenfoots 100 step
+     * speed system.
+     * 
+     * @param fps The target fps. Passing {@code 0} will pause the scenario instead
+     */
+    public static void setFps(int fps) {
+
+        long delay = 1000000000l / Math.max(fps, 1);
+        double speed = fps == 0 ? 0 :  delayToSpeed(delay) * 0.01;
+        if(isOnlineStateEmulated() ? !isOnline() : isOnline()) speed *= ONLINE_SPEED_FACTOR;
+        Console.debug("Speed for {} fps is {}", fps, speed);
+
+        try {
+            synchronized(Simulation.getInstance()) {
+                Field speedField = Simulation.class.getDeclaredField("speed");
+                speedField.setAccessible(true);
+                speedField.set(Simulation.getInstance(), (int)(speed * 100));
+
+                Field delayField = Simulation.class.getDeclaredField("delay");
+                delayField.setAccessible(true);
+                delayField.set(Simulation.getInstance(), delay);
+
+                Field pausedField = Simulation.class.getDeclaredField("paused");
+                pausedField.setAccessible(true);
+                if(pausedField.getBoolean(Simulation.getInstance())) {
+
+                    Field interruptLockField = Simulation.class.getDeclaredField("interruptLock");
+                    interruptLockField.setAccessible(true);
+                    synchronized(interruptLockField.get(Simulation.getInstance())) {
+                        Simulation.getInstance().interrupt();
+                    }
+                }
+
+                Method fireSimulationEventAsyncMethod = Simulation.class.getDeclaredMethod("fireSimulationEventAsync", AsyncEvent.class);
+                fireSimulationEventAsyncMethod.setAccessible(true);
+                fireSimulationEventAsyncMethod.invoke(Simulation.getInstance(), AsyncEvent.CHANGED_SPEED);
+            }
+            Console.info("Changed Simulation internal speed");
+        } catch(Exception e) {
+            Console.debug("Failed to set Simulation internal delay");
+            e.printStackTrace();
+            setSpeed(speed);
+        }
+    }
+
+    private static int delayToSpeed(long delay) {
+        if(delay <= 0) return Simulation.MAX_SIMULATION_SPEED;
+        return Simulation.MAX_SIMULATION_SPEED - (int)(Math.log((double)delay / 30000) / Math.log(1.1370685666958) + 1);
     }
 
     /**
