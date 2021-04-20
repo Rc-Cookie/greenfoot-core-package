@@ -3,7 +3,7 @@ package com.github.rccookie.greenfoot.core;
 import java.awt.Shape;
 import java.awt.image.BufferedImage;
 
-import com.github.rccookie.common.geometry.Vector;
+import com.github.rccookie.geometry.Vector;
 
 import greenfoot.Font;
 import greenfoot.GreenfootImage;
@@ -43,7 +43,7 @@ public class Image implements Cloneable {
      * 
      * @param copy The image to copy
      */
-    public Image(Image copy) {
+    private Image(Image copy) {
         gImage = new SupportGreenfootImage(copy.gImage);
     }
 
@@ -55,7 +55,7 @@ public class Image implements Cloneable {
      * @param filename The path and name of the image to load, for example
      *                 {@code "images/Car.png"}
      */
-    public Image(String filename) {
+    private Image(String filename) {
         gImage = new SupportGreenfootImage(filename);
     }
 
@@ -89,7 +89,7 @@ public class Image implements Cloneable {
      * Creates a copy of this image.
      */
     @Override
-    protected Image clone() {
+    public Image clone() {
         return new Image(this);
     }
 
@@ -368,6 +368,10 @@ public class Image implements Cloneable {
         //image.fill(Color.LIGHT_GRAY); // For debugging purposes
         image.drawString(string, 0, (int)(font.getSize() * 0.75), color, font);
         return image;
+    }
+
+    public static Image load(String fileName) {
+        return new Image(fileName);
     }
 
     public static Image of(GreenfootImage gImage) {
