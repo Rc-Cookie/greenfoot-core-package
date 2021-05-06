@@ -1,11 +1,15 @@
 package com.github.rccookie.greenfoot.core;
 
+import com.github.rccookie.event.Time;
+import com.github.rccookie.geometry.Vector;
+import com.github.rccookie.greenfoot.core.GameObject.SupportActor;
+import com.github.rccookie.greenfoot.java.util.Optional;
+import greenfoot.Actor;
+import greenfoot.GreenfootImage;
+import greenfoot.World;
+
 import java.lang.reflect.Constructor;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -13,24 +17,15 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.github.rccookie.event.Time;
-import com.github.rccookie.geometry.Vector;
-import com.github.rccookie.greenfoot.core.GameObject.SupportActor;
-import com.github.rccookie.greenfoot.java.util.Optional;
-
-import greenfoot.Actor;
-import greenfoot.GreenfootImage;
-import greenfoot.World;
-
 /**
  * An improved version of {@link World} which offers some
- * comveniance methods especially wo work with {@link GameObject}.
+ * convenience methods especially wo work with {@link GameObject}.
  * It should be used as base class for custom world
  * implementations instead of greenfoot.World.
  * <p>Like World, CoreWorld is abstract without actually containing
- * any astract methods. This is because the purpose of CoreWorld is
+ * any abstract methods. This is because the purpose of CoreWorld is
  * to be extended from with a custom implementation while being
- * able to use its functionallity.
+ * able to use its functionality.
  * 
  * @author RcCookie
  * @version 1.0
@@ -82,7 +77,7 @@ public abstract class Map extends ComplexUpdateable {
 
 
     /**
-     * Constructs a new map with a default size of {@code 600}x{@400} pixels
+     * Constructs a new map with a default size of {@code 600x400} pixels
      * and a cell size of {@code 1}.
      */
     public Map() {
@@ -138,7 +133,7 @@ public abstract class Map extends ComplexUpdateable {
         this.cellSize = cellSize;
         this.bounded = bounded;
         // Order matters!
-        world = new SupportWorld(this);
+        world = new SupportWorld();
         setBackground(Image.block(width, height, Color.WHITE));
     }
 
@@ -314,7 +309,7 @@ public abstract class Map extends ComplexUpdateable {
      *         there is any on the map
      */
     public <A> Optional<A> find(Class<A> cls, Predicate<A> requirement) {
-        return Optional.ofNullable(allStream(cls).filter(o -> requirement.test(o)).findAny().orElse(null));
+        return Optional.ofNullable(allStream(cls).filter(requirement).findAny().orElse(null));
     }
 
     /**
@@ -360,7 +355,7 @@ public abstract class Map extends ComplexUpdateable {
      * @return A list of all objects on this map that meet the requirement
      */
     public <A> Set<A> findAll(Class<A> cls, Predicate<A> requirement) {
-        return allStream(cls).filter(o -> requirement.test(o)).collect(Collectors.toSet());
+        return allStream(cls).filter(requirement).collect(Collectors.toSet());
     }
 
 
@@ -392,7 +387,7 @@ public abstract class Map extends ComplexUpdateable {
      * the given id.
      * 
      * @param <A> The type of object to check for
-     * @param cls The classs of object to check for
+     * @param cls The class of object to check for
      * @param id The id to check for
      * @return {@code true} if this map contains at least one object of the given
      *         class with the specified id
@@ -497,6 +492,14 @@ public abstract class Map extends ComplexUpdateable {
     @Override
     protected void physicsUpdate() { }
 
+
+
+    protected void onSet() { }
+
+    protected void onClose() { }
+
+
+
     /**
      * Returns the background image of this map.
      * 
@@ -550,7 +553,7 @@ public abstract class Map extends ComplexUpdateable {
      * @return A stream of all objects in this map
      */
     protected Stream<GameObject> allStream() {
-        return world.getObjects(SupportActor.class).stream().map(a -> a.gameObject);
+        return world.getObjects(SupportActor.class).stream().map(SupportActor::gameObject);
     }
 
     /**
@@ -564,7 +567,7 @@ public abstract class Map extends ComplexUpdateable {
     @SuppressWarnings("unchecked")
     protected <T> Stream<T> allStream(Class<T> cls) {
         Objects.requireNonNull(cls);
-        return allStream().filter(o -> cls.isInstance(o)).map(o -> (T)o);
+        return allStream().filter(cls::isInstance).map(o -> (T)o);
     }
 
     /**
@@ -580,7 +583,7 @@ public abstract class Map extends ComplexUpdateable {
     @SuppressWarnings("unchecked")
     protected <T> Set<T> findAllFiltered(Class<T> cls, Predicate<GameObject> filter) {
         Objects.requireNonNull(cls);
-        return allStream().filter(o -> cls.isInstance(o)).filter(o -> filter.test(o)).map(o -> (T)o).collect(Collectors.toSet());
+        return allStream().filter(cls::isInstance).filter(filter).map(o -> (T)o).collect(Collectors.toSet());
     }
 
     /**
@@ -618,7 +621,7 @@ public abstract class Map extends ComplexUpdateable {
     }
 
     /**
-     * Rerenders the map. This may be helpful to ensure that the displayed
+     * Renders the map. This may be helpful to ensure that the displayed
      * map is up-to-date.
      */
     public void render() {
@@ -627,7 +630,7 @@ public abstract class Map extends ComplexUpdateable {
 
     /**
      * Shows the given text on the background of the map. If there already is
-     * text shown on that exact location it woll be replaced.
+     * text shown on that exact location it will be replaced.
      * 
      * @param text The string to display
      * @param x The x coordinate of the center of the text
@@ -657,7 +660,8 @@ public abstract class Map extends ComplexUpdateable {
      */
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "(" + getWidth() + "x" + getHeight() + ")";
+        return (getClass().isAnonymousClass() ? getClass().getSuperclass().getSimpleName() : getClass().getSimpleName())
+                + " (" + getWidth() + "x" + getHeight() + ")";
     }
 
     /**
@@ -680,35 +684,54 @@ public abstract class Map extends ComplexUpdateable {
 
 
 
+    public static World asWorld(Map map) {
+        return map.world;
+    }
+
     /**
-     * The class of the underlying world. Calls neccecary methods on the map it belongs
+     * @deprecated Only meant for executing by the Greenfoot ui
+     */
+    @Deprecated
+    public static void executeOnCurrent(Consumer<Map> command) {
+        executeOnCurrent(m -> {
+            command.accept(m);
+            return null;
+        });
+    }
+
+    /**
+     * @deprecated Only meant for executing by the Greenfoot ui
+     */
+    @Deprecated
+    public static <R> R executeOnCurrent(Function<Map, R> command) {
+        return command.apply(Core.getMap().orElse(null));
+    }
+
+
+
+    /**
+     * The class of the underlying world. Calls necessary methods on the map it belongs
      * to when they are called on it.
      */
-    static final class SupportWorld extends World {
+    final class SupportWorld extends World {
 
-        final Map map;
-
-        private SupportWorld(Map map) {
-            super(map.getWidth(), map.getHeight(), map.getCellSize(), map.isBounded());
-            this.map = map;
+        private SupportWorld() {
+            super(Map.this.getWidth(), Map.this.getHeight(), Map.this.getCellSize(), Map.this.isBounded());
         }
 
         @Override
         public void act() {
-            
-            map.onAct();
+            Map.this.onAct();
         }
 
         @Override
         public void addObject(Actor object, int x, int y) {
-            
             super.addObject(object, x, y);
         }
 
         @Override
         public GreenfootImage getBackground() {
-            
-            GreenfootImage image = Image.asGImage(map.getBackground());
+            GreenfootImage image = Image.asGImage(Map.this.getBackground());
             if(image == null) {
                 image = new GreenfootImage(getWidth(), getHeight());
                 image.setColor(greenfoot.Color.WHITE);
@@ -719,44 +742,37 @@ public abstract class Map extends ComplexUpdateable {
 
         @Override
         public int getCellSize() {
-            
-            return map.getCellSize();
+            return Map.this.getCellSize();
         }
 
         @Override
         public greenfoot.Color getColorAt(int x, int y) {
-            
-            return Color.asGColor(map.getColorAt(x, y));
+            return Color.asGColor(Map.this.getColorAt(x, y));
         }
 
         @Override
         public int getHeight() {
-            
-            return map.getHeight();
+            return Map.this.getHeight();
         }
 
         @Override
         public <A> List<A> getObjects(Class<A> cls) {
-            
             return super.getObjects(cls);
         }
 
         @Override
         public <A> List<A> getObjectsAt(int x, int y, Class<A> cls) {
-            
             return super.getObjectsAt(x, y, cls);
         }
 
         @Override
         public int numberOfObjects() {
-            
             return super.numberOfObjects();
         }
 
         @Override
         public int getWidth() {
-            
-            return map.getWidth();
+            return Map.this.getWidth();
         }
 
         @Override
@@ -766,80 +782,58 @@ public abstract class Map extends ComplexUpdateable {
 
         @Override
         public void removeObjects(Collection<? extends Actor> objects) {
-            
             super.removeObjects(objects);
         }
 
         @Override
         public void repaint() {
-            
-            map.render();
+            Map.this.render();
         }
 
         private void superRepaint() {
-            
             super.repaint();
         }
 
         @Override
-        @SuppressWarnings("rawtypes")
         public void setActOrder(Class... classes) {
-            
             super.setActOrder(classes);
         }
 
         @Override
-        @SuppressWarnings("rawtypes")
         public void setPaintOrder(Class... classes) {
-            
             super.setPaintOrder(classes);
         }
 
         @Override
         public void showText(String text, int x, int y) {
-            
             super.showText(text, x, y);
         }
 
         @Override
         public void started() {
-            
-            map.paused();
+            Map.this.paused();
         }
 
         @Override
         public void stopped() {
-            
-            map.started();
+            Map.this.started();
         }
 
         @Override
         public String toString() {
-            
-            return map.toString();
+            return Map.this.toString();
         }
-    }
 
-
-
-    public static World asWorld(Map map) {
-        return map.world;
-    }
-
-    public static void executeOnCurrent(Consumer<Map> command) {
-        executeOnCurrent(m -> {
-            command.accept(m);
-            return null;
-        });
-    }
-
-    public static <R> R executeOnCurrent(Function<Map, R> command) {
-        return command.apply(Core.getMap());
+        Map map() {
+            return Map.this;
+        }
     }
 
 
 
     public static abstract class MapLoader extends World {
+
+        private static boolean initialized = false;
 
         private Map map;
 
@@ -878,25 +872,32 @@ public abstract class Map extends ComplexUpdateable {
         public MapLoader(int width, int height, Supplier<Map> mapGenerator, boolean startRunning) {
             super(width, height, 1);
             this.startRunning = startRunning;
+
+            if(!initialized) {
+                initialize();
+                initialized = true;
+            }
             load(mapGenerator);
         }
 
-        private final void load(Supplier<Map> mapGenerator) {
-            addObject(GameObject.asActor(Core.isOnline() ?
-                Image.text("Loading...", Color.DARK_GRAY, FontStyle.modern(20)).asGameObject() :
-                Image.text("Loading...\nIf you are offline and continue to see this image, simply\nhit reset. It should only occur whenever the start map's\nname was changed.", Color.DARK_GRAY, FontStyle.modern(20)).asGameObject()
+        private void load(Supplier<Map> mapGenerator) {
+            addObject(GameObject.asActor(Core.getSession() == Session.ONLINE ?
+                Image.text("Loading...", Color.DARK_GRAY, Font.modern(20)).asGameObject() :
+                Image.text("Loading...\nIf you are offline and continue to see this image, simply\nhit reset. It should only occur whenever the start map's\nname was changed.", Color.DARK_GRAY, Font.modern(20)).asGameObject()
             ), getWidth() / 2, getHeight() / 2);
             map = mapGenerator.get();
             Core.setMap(map);
             map.render();
-            if(startRunning || Core.isOnline()) Core.run();
+            if(startRunning || Core.getSession() == Session.ONLINE) Core.run();
         }
 
         @Override
-        public void act() {
+        public final void act() {
             Core.setRun(startRunning);
             Core.setMap(map);
             map.render();
         }
+
+        public void initialize() { }
     }
 }
