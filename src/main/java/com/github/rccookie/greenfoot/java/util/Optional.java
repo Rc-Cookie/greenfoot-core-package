@@ -421,10 +421,12 @@ public class Optional<T> {
             super();
         }
 
+        @Override
         public Optional<T> filter(Predicate<? super T> predicate) {
             return empty();
         };
 
+        @Override
         public <U> Optional<U> flatMap(Function<? super T,? extends Optional<? extends U>> mapper) {
             return empty();
         };
