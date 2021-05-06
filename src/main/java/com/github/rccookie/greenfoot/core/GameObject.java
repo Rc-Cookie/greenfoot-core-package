@@ -1,29 +1,20 @@
 package com.github.rccookie.greenfoot.core;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.IntPredicate;
-import java.util.stream.Collectors;
-
+import com.github.rccookie.data.json.JsonSerializable;
+import com.github.rccookie.event.Time;
+import com.github.rccookie.geometry.Vector;
+import com.github.rccookie.geometry.Vector2D;
+import com.github.rccookie.geometry.Vectors;
+import com.github.rccookie.greenfoot.java.util.Optional;
+import com.github.rccookie.util.Updateable;
 import greenfoot.Actor;
 import greenfoot.ActorVisitor;
 import greenfoot.GreenfootImage;
 import greenfoot.World;
 
-import com.github.rccookie.greenfoot.core.GameObject;
-import com.github.rccookie.greenfoot.java.util.Optional;
-import com.github.rccookie.util.Updateable;
-import com.github.rccookie.data.json.JsonField;
-import com.github.rccookie.data.json.JsonSerializable;
-import com.github.rccookie.geometry.Transform2D;
-import com.github.rccookie.geometry.Vector;
-import com.github.rccookie.geometry.Vector2D;
-import com.github.rccookie.geometry.Vectors;
-import com.github.rccookie.event.Time;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * A GameObject is an an object that can be on a {@link Map}. It is based on {@link Actor} sharing all its common
@@ -32,7 +23,7 @@ import com.github.rccookie.event.Time;
  * <li>Double based localization with smooth movement and movement in steps over longer distances
  * <li>Vector and transform based movement methods
  * <li>Framerate dependent movement speed (see {@code fixedMove(int)}) to be independent of the framerate
- * <li>Included {@code Time} instance that is automaticly being updated
+ * <li>Included {@code Time} instance that is automatically being updated
  * <li>Information about the mouse state on this object and methods that may be executed when clicked
  * </ul>
  * Like {@link Actor}, GameObject is abstract, as its purpose is to be used for a specific implementation. It
@@ -44,7 +35,6 @@ import com.github.rccookie.event.Time;
  * @see Actor
  * @see Time
  * @see Vector
- * @see Transform2D
  */
 @JsonSerializable
 public abstract class GameObject extends ComplexUpdateable {
@@ -70,7 +60,7 @@ public abstract class GameObject extends ComplexUpdateable {
      */
     private static final Image DEFAULT_IMAGE = createDefaultImage();
 
-    private static final Image createDefaultImage() {
+    private static Image createDefaultImage() {
         Image image = Image.block(
             DEFAULT_IMAGE_SIZE,
             DEFAULT_IMAGE_SIZE,
@@ -82,29 +72,55 @@ public abstract class GameObject extends ComplexUpdateable {
 
 
 
+
+
+
+    // -----------------------------------------------------------------------------
+    // Instance fields
+    // -----------------------------------------------------------------------------
+
+
+
+
+
+
+    // Location
+
+
+
     /**
      * The location of the object.
      */
-    @JsonField
-    private final Transform2D transform = new Transform2D();
+    private final Vector location = Vector.of(0, 0);
+
+    /**
+     * The rotation of the object.
+     */
+    private double angle = 0;
 
     /**
      * An immutable vector wrapping around the location vector of the transform. It can savely
      * be returned by any get method that returns the location of this object without the risk
-     * of it being modified nor the unneccecary creation of a new vector every time a get method
+     * of it being modified nor the unnecessary creation of a new vector every time a get method
      * is called.
      */
-    private final Vector locationGetter = Vectors.immutableVector(transform.location);
+    private final Vector locationGetter = Vectors.immutableVector(location);
+
+    /**
+     * The map the object is currently on.
+     */
+    Map map = null;
 
     /**
      * The velocity of the object.
      */
     private final Vector velocity = new Vector2D();
 
-    /**
-     * The time object of this game object. It is updated once per frame and can be accessed by extending classes.
-     */
-    protected final Time time = new NoExternalUpdateTime();
+
+
+    // Rendering
+
+
 
     /**
      * The image of this object.
@@ -114,12 +130,11 @@ public abstract class GameObject extends ComplexUpdateable {
     /**
      * The underlying support actor that will actually be displayed.
      */
-    final SupportActor actor = new SupportActor(this);
+    final SupportActor actor = new SupportActor();
 
-    /**
-     * The map the object is currently on.
-     */
-    Map map = null;
+
+
+    // Mouse interactions
 
 
 
@@ -132,25 +147,6 @@ public abstract class GameObject extends ComplexUpdateable {
      * Weather the mouse is currently pressing onto the object.
      */
     private boolean pressed = false;
-
-    /**
-     * The id of this object;
-     */
-    private String id = null;
-
-
-
-    /**
-     * Actions to perform on every frame.
-     */
-    private final List<Runnable> onUpdate = new ArrayList<>();
-
-    /**
-     * Actions to perform later on every frame.
-     */
-    private final List<Runnable> onLateUpdate = new ArrayList<>();
-
-
 
     /**
      * Actions to perform when the mouse clicks onto this object.
@@ -168,6 +164,35 @@ public abstract class GameObject extends ComplexUpdateable {
      */
     private final List<Runnable> onRelease = new ArrayList<>();
 
+
+
+    // Listeners
+
+
+
+    /**
+     * The time object of this game object. It is updated once per frame and can be accessed by extending classes.
+     */
+    protected final Time time = new NoExternalUpdateTime();
+
+    /**
+     * Actions to perform on every frame.
+     */
+    private final List<Runnable> onUpdate = new ArrayList<>();
+
+    private final List<Runnable> addedOnUpdate = new ArrayList<>();
+
+    private final List<Runnable> removedOnUpdate = new ArrayList<>();
+
+    /**
+     * Actions to perform later on every frame.
+     */
+    private final List<Runnable> onLateUpdate = new ArrayList<>();
+
+    private final List<Runnable> addedOnLateUpdate = new ArrayList<>();
+
+    private final List<Runnable> removedOnLateUpdate = new ArrayList<>();
+
     /**
      * Actions to perform when the object is added to a map.
      */
@@ -175,14 +200,190 @@ public abstract class GameObject extends ComplexUpdateable {
 
 
 
+    // misc
+
+
+
+    /**
+     * The id of this object;
+     */
+    private String id = null;
+
+
+
+
+
+
+    // -----------------------------------------------------------------------------
+    // Constructor
+    // -----------------------------------------------------------------------------
+
+
+
+
+
+
     /**
      * Constructs a new game object.
      */
     public GameObject() {
-        addOnUpdate(() -> ((NoExternalUpdateTime)time).actualUpdate());
+        addOnUpdate(((NoExternalUpdateTime)time)::actualUpdate);
         addOnLateUpdate(() -> fixedMove(velocity));
         setImage(DEFAULT_IMAGE.clone());
     }
+
+
+
+
+
+
+    // -----------------------------------------------------------------------------
+    // Update methods
+    // -----------------------------------------------------------------------------
+
+
+
+
+
+
+    @Override
+    public void earlyUpdate() { }
+
+    @Override
+    public void update() { }
+
+    /**
+     * Called once per frame. Is intended to contain physical operations (but also things like button functionality)
+     * and is therefore called after the {@code update()} method.
+     * <p>Make sure to always call the super implementation of this method when overriding it!
+     */
+    @Override
+    protected void physicsUpdate() { }
+
+    @Override
+    public void lateUpdate() { }
+
+    @Override
+    void internalUpdate() {
+        handleMouseInteractions();
+        handleUpdateListeners();
+    }
+
+    @Override
+    void lateInternalUpdate() {
+        handleLateUpdateListeners();
+    }
+
+    private void handleUpdateListeners() {
+        onUpdate.addAll(addedOnUpdate);
+        addedOnUpdate.clear();
+        onUpdate.removeAll(removedOnUpdate);
+        removedOnUpdate.clear();
+        for(Runnable listener : onUpdate) listener.run();
+    }
+
+    private void handleLateUpdateListeners() {
+        onLateUpdate.addAll(addedOnLateUpdate);
+        addedOnLateUpdate.clear();
+        onLateUpdate.removeAll(removedOnLateUpdate);
+        removedOnLateUpdate.clear();
+        for(Runnable listener : onLateUpdate) listener.run();
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------------------------
+    // Basics
+    // -----------------------------------------------------------------------------
+
+
+
+
+
+
+    /**
+     * Returns the {@link Map} this game object is currently on, if any.
+     *
+     * @return The map this object is currently on
+     */
+    public Optional<Map> getMap() {
+        return Optional.ofNullable(map);
+    }
+
+    /**
+     * Returns the map of the given type this object is currently on. If the object
+     * is not on a map of the given type or not on a map at all this will return an
+     * empty optional.
+     *
+     * @param <M> The type of map
+     * @param mapType The class of the map that should be returned
+     * @return The map the object is on
+     */
+    @SuppressWarnings("unchecked")
+    public <M> Optional<M> getMap(Class<M> mapType) {
+        Objects.requireNonNull(mapType);
+        return getMap().filter(mapType::isInstance).map(m -> (M)m);
+    }
+
+    /**
+     * Removes this object from the map it is on, if there is one.
+     *
+     * @return Weather the object was on a map before
+     */
+    public boolean remove() {
+        return getMap().ifPresent(m -> m.remove(this));
+    }
+
+    /**
+     * Returns the id of this object. You can set it's id using
+     * {@link #setId(String)}.
+     *
+     * @return The id of this object, defaulted to {@code null}
+     */
+    public String getId() {
+        return id;
+    }
+
+    /**
+     * Sets the id of this object. By default the id is {@code null}.
+     * You can request an object's id using {@link #getId()}.
+     *
+     * @param id The new id for this object
+     * @return This object
+     */
+    public GameObject setId(String id) {
+        this.id = id;
+        return this;
+    }
+
+    /**
+     * Returns a string representation of this object. By default this will return the name of the
+     * class of the object and its location.
+     */
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + (getMap().isEmpty() ? "" : " at " + getLocation());
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------------------------
+    // Image
+    // -----------------------------------------------------------------------------
+
+
+
 
 
 
@@ -197,7 +398,7 @@ public abstract class GameObject extends ComplexUpdateable {
     /**
      * Returns the current image of this object. The returned instance is
      * not a copy, so modifications will effect the look of this object.
-     * 
+     *
      * @return The object's image
      */
     public Image getImage() {
@@ -208,7 +409,7 @@ public abstract class GameObject extends ComplexUpdateable {
      * Returns the current width of this object, that is defined by the
      * width of its image. If this object currently does not have an image,
      * {@code 0} will be returned.
-     * 
+     *
      * @return The width of this object
      */
     public int getWidth() {
@@ -220,7 +421,7 @@ public abstract class GameObject extends ComplexUpdateable {
      * Returns the current height of this object, that is defined by the
      * height of its image. If this object currently does not have an image,
      * {@code 0} will be returned.
-     * 
+     *
      * @return The height of this object
      */
     public int getHeight() {
@@ -228,194 +429,30 @@ public abstract class GameObject extends ComplexUpdateable {
         return image != null ? image.getHeight() : 0;
     }
 
-    /**
-     * Returns all game objects of the specified class that intersect this
-     * object.
-     * 
-     * @param <A> The type of object
-     * @param cls The class of the objects to return
-     * @return All intersecting game objects of the specified class
-     */
-    @SuppressWarnings("unchecked")
-    protected <A> Set<A> findAllIntersecting(Class<A> cls) {
-        Objects.requireNonNull(cls);
-        return actor.getIntersectingObjects(SupportActor.class)
-                    .stream()
-                    .map(a -> a.gameObject)
-                    .filter(o -> cls.isInstance(o))
-                    .map(o -> (A)o)
-                    .collect(Collectors.toSet());
+
+
+
+
+
+    // -----------------------------------------------------------------------------
+    // Mouse interactions
+    // -----------------------------------------------------------------------------
+
+
+
+
+
+
+    private void handleMouseInteractions() {
+        try {
+            MouseState mouse = MouseState.get();
+            hovered = mouse != null && ActorVisitor.containsPoint(actor, (int) mouse.location.x() * getMap().get().getCellSize(), (int) mouse.location.y() * getMap().get().getCellSize());
+            if(hovered && MouseState.pressed(actor)) onPress();
+            else if(pressed && MouseState.released(null)) onRelease();
+        } catch(NoSuchElementException e) {
+            // Not sure why this can happen...
+        }
     }
-
-    /**
-     * Returns all game objects of the specified class that are at the specified
-     * location relative to this objects location.
-     * 
-     * @param <A> The type of object
-     * @param dx The x offset to this objects location
-     * @param dy The y offset to this objects location
-     * @param cls The class of the objects to return
-     * @return All game objects at the specified offset of the given class
-     */
-    @SuppressWarnings("unchecked")
-    protected <A> Set<A> findAllAtOffset(double dx, double dy, Class<A> cls) {
-        Objects.requireNonNull(cls);
-        Vector target = Vector.of(dx, dy).add(getLocation());
-        return map.findAll(SupportActor.class)
-                    .stream()
-                    .map(a -> a.gameObject)
-                    .filter(o -> cls.isInstance(o))
-                    .filter(o -> o.getLocation().equals(target))
-                    .map(o -> (A)o)
-                    .collect(Collectors.toSet());
-    }
-
-    /**
-     * Returns all game objects of the specified class that are in the given range.
-     * 
-     * @param <A> The type of object
-     * @param dx The x offset to this objects location
-     * @param dy The y offset to this objects location
-     * @param cls The class of the objects to return
-     * @return All game objects at the specified offset of the given class
-     */
-    @SuppressWarnings("unchecked")
-    protected <A> Set<A> findAllInRange(double radius, Class<A> cls) {
-        Objects.requireNonNull(cls);
-        return actor.getObjectsInRange((int)(radius + 1), null)
-                    .stream()
-                    .map(a -> ((SupportActor)a).gameObject)
-                    .filter(o -> cls.isInstance(o))
-                    .filter(o -> Vector.between(getLocation(), o.getLocation()).abs() <= radius)
-                    .map(o -> (A)o)
-                    .collect(Collectors.toSet());
-    }
-
-    /**
-     * Finds an object of the given class that graphically intersects this object.
-     * 
-     * @param <A> The type of object
-     * @param cls The class of the object to return
-     * @return An optional with an intersecting object, or an empty optional
-     */
-    @SuppressWarnings("unchecked")
-    protected <A> Optional<A> findIntersecting(Class<A> cls) {
-        Objects.requireNonNull(cls);
-        return Optional.ofNullable(actor.getWorld().getObjects(SupportActor.class)
-                            .stream()
-                            .map(a -> a.gameObject)
-                            .filter(o -> cls.isInstance(o))
-                            .filter(o -> intersects(o))
-                            .map(o -> (A)o)
-                            .findAny()
-                            .orElse(null));
-    }
-
-    /**
-     * Returns the {@link Map} this game object is currently on, if any.
-     * 
-     * @return The map this object is currently on
-     */
-    public Optional<Map> getMap() {
-        return Optional.ofNullable(map);
-    }
-
-    /**
-     * Returns the map of the given type this object is currently on. If the object
-     * is not on a map of the given type or not on a map at all this will return an
-     * empty optional.
-     * 
-     * @param <M> The type of map
-     * @param mapType The class of the map that should be returned
-     * @return The map the object is on
-     */
-    @SuppressWarnings("unchecked")
-    public <M> Optional<M> getMap(Class<M> mapType) {
-        Objects.requireNonNull(mapType);
-        return getMap().filter(m -> mapType.isInstance(m)).map(m -> (M)m);
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
-
-    /**
-     * Checks weather this game object graphically intersects the given object.
-     * 
-     * @param other The object to check collisions for
-     * @return {@code true} if the two objects intersect, {@code false} otherwise
-     */
-    protected boolean intersects(GameObject other) {
-        Objects.requireNonNull(other);
-        return actor.intersects(other.actor);
-    }
-
-    /**
-     * Returns weather this object is at the map edge.
-     * 
-     * @return Weather this object is at the map edge
-     */
-    public boolean isAtEdge() {
-        return getX() <= 0 || getY() <= 0 || getX() >= getMap().get().getWidth() - 1 || getY() >= getMap().get().getHeight() - 1;
-    }
-
-    /**
-     * Returns weather this object graphically touches an object of the given class.
-     * 
-     * @param cls The class of the objects to check intersection for
-     * @return Weather this object touches any objects of the given class
-     */
-    protected boolean isTouching(Class<?> cls) {
-        return findIntersecting(cls).isPresent();
-    }
-
-    /**
-     * Removes an intersecting object of the given class, if there is any.
-     */
-    protected void removeOneTouching(Class<?> cls) {
-        findIntersecting(cls).ifPresent(o -> ((GameObject)o).remove());
-    }
-
-    /**
-     * Returns a string representation of this object. By default this will return the name of the
-     * class of the object and its location.
-     */
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + (getMap().isEmpty() ? "" : " at " + getLocation());
-    }
-
-
-
-    @Override
-    public void earlyUpdate() { }
-
-    @Override
-    public void update() { }
-
-    /**
-     * Called once per frame. Is intented to contain physical operations (but also things like button functionallity)
-     * and is therefore called after the {@code update()} method.
-     * <p>Make sure to always call the super implementation of this method when overriding it!
-     */
-    protected void physicsUpdate() { }
-
-    @Override
-    public void lateUpdate() { }
-
-
-
-    /**
-     * Removes this object from the map it is on, if there is one.
-     * 
-     * @return Weather the object was on a map before
-     */
-    public boolean remove() {
-        return getMap().ifPresent(m -> m.remove(this));
-    }
-
-
 
     /**
      * Called whenever the mouse clicked onto this object (released the mouse on the object after it had been pressed down on it).
@@ -444,6 +481,7 @@ public abstract class GameObject extends ComplexUpdateable {
     }
 
 
+
     /**
      * Virtually presses and releases the mouse from this object within one frame, having the same result as if the mouse actually
      * clicked on this object.
@@ -459,7 +497,7 @@ public abstract class GameObject extends ComplexUpdateable {
     /**
      * Returns weather the mouse presses this object right now. This is considered to be the case if the mouse was pressed down on the object
      * or its collider and since then not released.
-     * 
+     *
      * @return Weather the mouse is pressed onto the object
      */
     public boolean pressed() {
@@ -468,7 +506,7 @@ public abstract class GameObject extends ComplexUpdateable {
 
     /**
      * Returns weather the mouse currently hovers above this object.
-     * 
+     *
      * @return Weather the mouse is hovering above this object
      */
     public boolean hovered() {
@@ -477,70 +515,138 @@ public abstract class GameObject extends ComplexUpdateable {
 
 
 
-    @Override
-    void internalUpdate() {
-        handleMouseInteractions();
-        handleUpdateListeners();
-    }
 
-    @Override
-    void lateInternalUpdate() {
-        handleLateUpdateListeners();
-    }
 
-    private void handleMouseInteractions() {
-        try {
-            MouseState mouse = MouseState.get();
-            hovered = mouse != null ? ActorVisitor.containsPoint(actor, (int)mouse.location.x() * getMap().get().getCellSize(), (int)mouse.location.y() * getMap().get().getCellSize()) : false;
-            if(hovered && MouseState.pressed(actor)) onPress();
-            else if(pressed && MouseState.released(null)) onRelease();
-        } catch(NoSuchElementException e) {
-            // Not sure why this can happen...
-        }
-    }
 
-    private void handleUpdateListeners() {
-        for(Runnable listener : onUpdate) listener.run();
-    }
+    // -----------------------------------------------------------------------------
+    // Movement
+    // -----------------------------------------------------------------------------
 
-    private void handleLateUpdateListeners() {
-        for(Runnable listener : onLateUpdate) listener.run();
-    }
+
+
+
+    // Location
+
 
 
 
     /**
-     * Returns the id of this object. You can set it's id using
-     * {@link #setId(String)}.
-     * 
-     * @return The id of this object, defaulted to {@code null}
+     * Moves the object to the location of the other object.
+     *
+     * @param toObjectsLocation The object to move to
      */
-    public String getId() {
-        return id;
+    public void setLocation(GameObject toObjectsLocation) {
+        setLocation(toObjectsLocation.getLocation());
     }
 
     /**
-     * Sets the id of this object. By default the id is {@code null}.
-     * You can request an object's id using {@link #getId()}.
-     * 
-     * @param id The new id for this object
-     * @return This object
+     * Moves the object to the specified x coordinate.
+     *
+     * @param x The new x coordinate
      */
-    public GameObject setId(String id) {
-        this.id = id;
-        return this;
+    public void setX(double x) {
+        location.setX(x);
+        updateLocation();
+    }
+
+    /**
+     * Moves the object to the specified y coordinate.
+     *
+     * @param y The new y coordinate
+     */
+    public void setY(double y) {
+        location.setY(y);
+        updateLocation();
+    }
+
+    /**
+     * Moves the object to the specified x and y coordinates. While floating point
+     * values may not be visible, they will be saved.
+     *
+     * @param x The new x coordinate of the object
+     * @param y The new y coordinate of the object
+     */
+    public void setLocation(double x, double y) {
+        location.setX(x);
+        location.setY(y);
+        updateLocation();
+    }
+
+    /**
+     * Moves the object to the specified location.
+     *
+     * @param location The new location of the object
+     */
+    public void setLocation(Vector location) {
+        this.location.set(location);
+        updateLocation();
+    }
+
+    /**
+     * Updates the underlying actor's location.
+     */
+    private void updateLocation(){
+        actor.superSetLocation((int)(location.x() + 0.5), (int)(location.y() + 0.5));
     }
 
 
 
-    //fixed movement
+
+    // Moving
+
+
+
+
+    /**
+     * Moves the object the specified distance.
+     *
+     * @param movement The vector that describes the movement of the object
+     */
+    public void move(Vector movement) {
+        setLocation(location.add(movement));
+    }
+
+    /**
+     * Moves the object the specified distance in the direction it is currently facing.
+     *
+     * @param distance The distance in cells to move
+     */
+    public void move(double distance) {
+        move(Vector2D.angledVector(angle, distance));
+    }
+
+    /**
+     * Moves the object the specified number of cells parallel to the x axis.
+     *
+     * @param distance The distance in cells for the object to move
+     */
+    public void moveX(double distance) {
+        move(Vector2D.angledVector(0, distance));
+    }
+
+    /**
+     * Moves the object the specified number of cells parallel to the y axis.
+     *
+     * @param distance The distance in cells for the object to move
+     */
+    public void moveY(double distance) {
+        move(Vector2D.angledVector(90, distance));
+    }
+
+
+
+
+    // Fixed moving
+
+
+
 
     /**
      * Moves the object the specified distance multiplied by the current time delta.
      * This means that if this method is called once per frame with the parameter
      * {@code x} the object will in sum move the length of {@code x} per second,
      * independent of the framerate.
-     * 
+     *
      * @param movement The distance to move in cells/second
      */
     public void fixedMove(Vector movement) {
@@ -552,27 +658,11 @@ public abstract class GameObject extends ComplexUpdateable {
      * This means that if this method is called once per frame with the parameter
      * {@code x} the object will in sum move the length of {@code x} per second,
      * independent of the framerate.
-     * 
+     *
      * @param distance The distance to move in cells/second
      */
     public void fixedMove(double distance){
-        fixedMove(Vector2D.angledVector(transform.rotation, distance));
-    }
-
-    /**
-     * Moves and turns the object the specified distance and rotation multiplied by
-     * the current time delta. This means that if this method is called once per
-     * frame with the parameter {@code x} the object will in sum move and turn the
-     * length/rotation of {@code x} per second, independent of the framerate.
-     * 
-     * @param movement The distance and rotation to move stored inside of a transforme
-     *                 in cells/second and degrees/second
-     */
-    public void fixedMove(Transform2D movement){
-        movement = new Transform2D(movement);
-        movement.location.scale(time.deltaTime());
-        movement.rotation *= time.deltaTime();
-        move(movement);
+        fixedMove(Vector2D.angledVector(angle, distance));
     }
 
     /**
@@ -580,8 +670,8 @@ public abstract class GameObject extends ComplexUpdateable {
      * current time delta. This means that if this method is called once per frame with
      * the parameter {@code x} the object will in sum move the length of {@code x} per
      * second, independent of the framerate.
-     * 
-     * @param distance The distance to movee in cells/second
+     *
+     * @param distance The distance to move in cells/second
      */
     public void fixedMoveX(double distance){
         fixedMove(Vector2D.angledVector(0, distance));
@@ -592,150 +682,154 @@ public abstract class GameObject extends ComplexUpdateable {
      * current time delta. This means that if this method is called once per frame with
      * the parameter {@code x} the object will in sum move the length of {@code x} per
      * second, independent of the framerate.
-     * 
+     *
      * @param distance The distance to move in cells/second
      */
     public void fixedMoveY(double distance){
         fixedMove(Vector2D.angledVector(90, distance));
     }
 
+
+
+
+
+
+    // -----------------------------------------------------------------------------
+    // Rotation
+    // -----------------------------------------------------------------------------
+
+
+
+
+
+
     /**
-     * Moves the object the specified distance multiplied by the current time delta. Works
-     * just like {@code moveInSteps(Vector, double)} but scaled by the time delta like in
-     * {@code fixedMove(Vector)}.
-     * 
-     * @see #moveInSteps(Vector, double)
-     * @see #fixedMove(Vector)
-     * @param movement The distance to move in cells/second
-     * @param stepSize The size of each step
-     * @return The vector that describes the move that actually happened
+     * Sets the rotations of the object. While floating point values may not be
+     * visible, they will be saved.
+     *
+     * @param angle The rotation in degrees
      */
-    public Vector fixedMoveInSteps(Vector movement, double stepSize, IntPredicate onStep) {
-        return moveInSteps(movement.scaled(time.deltaTime()), stepSize, onStep);
+    public void setAngle(double angle) {
+        this.angle = angle;
+        actor.superSetRotation((int)(angle + 0.5));
     }
 
     /**
-     * Moves the object the specified distance multiplied by the current time delta. Works
-     * just like {@code moveInSteps(Vector, double)} but scaled by the time delta like in 
-     * @code fixedMove(Vector)}.
-     * 
-     * @see #moveInSteps(double, double)
-     * @see #fixedMove(Vector)
-     * @param movement The distance to move in cells/second
-     * @param stepSize The size of each step
-     * @return The distance the object actually moved
+     * Turn this object towards the given target.
+     *
+     * @param target The object to look at
      */
-    public double fixedMoveInSteps(double distance, double stepSize, IntPredicate onStep) {
-        return fixedMoveInSteps(Vector2D.angledVector(transform.rotation, distance), stepSize, onStep).abs();
+    public void turnTowards(GameObject target) {
+        turnTowards(target.getLocation());
+    }
+
+    /**
+     * Turn this object towards the given target.
+     *
+     * @param target The location to look at
+     */
+    public void turnTowards(Vector target) {
+        setAngle(Vector.between(getLocation(), target.get2D()).angle());
+    }
+
+    /**
+     * Turn this object facing towards the given target.
+     *
+     * @param x The x coordinate of the target to look at
+     * @param y The y coordinate of the target to look at
+     */
+    public void turnTowards(double x, double y) {
+        turnTowards(Vector.of(x, y));
+    }
+
+    /**
+     * Turns the object the specified amount of degrees. Positive values will result
+     * in clockwise rotation, negative in counterclockwise.
+     *
+     * @param angle The angle to turn the object in degrees
+     */
+    public void turn(double angle) {
+        setAngle(this.angle + angle);
     }
 
     /**
      * Turns the object the specified amount of degrees multiplied by the current time delta.
      * This means that if this method is called once per frame with the parameter {@code x}
      * the object will in sum turn {@code x} degrees per second, independent of the framerate.
-     * 
+     *
      * @param angle The turning speed in degrees/second
      */
     public void fixedTurn(double angle) {
         turn(angle * time.deltaTime());
     }
-    
-    
 
-    //smooth movement
+
+
+
+
+
+    // -----------------------------------------------------------------------------
+    // Position getters
+    // -----------------------------------------------------------------------------
+
+
+
+
+
 
     /**
-     * Moves the object the specified distance.
-     * 
-     * @param movement The vector that describes the movement of the object
+     * Returns the x coordinate of the object.
+     *
+     * @return The x coordinate of the object
      */
-    public void move(Vector movement) {
-        setLocation(transform.location.add(movement));
+    public double getX() {
+        return location.x();
     }
 
     /**
-     * Moves the object the specified distance in the direction it is currently facing.
-     * 
-     * @param distance The distance in cells to move
+     * Returns the y coordinate of the object.
+     *
+     * @return The y coordinate of the object
      */
-    public void move(double distance) {
-        move(Vector2D.angledVector(transform.rotation, distance));
+    public double getY() {
+        return location.y();
     }
 
     /**
-     * Moves the object the specified distance and turns if the specified amount of degrees.
-     * 
-     * @param movement The move in cells and turn in degrees of the object, contained in a
-     *                 transform
+     * Returns the location of the object.
+     *
+     * @return The location of the object
      */
-    public void move(Transform2D movement) {
-        move(movement.location);
-        turn(movement.rotation);
+    public Vector getLocation() {
+        return locationGetter;
     }
 
     /**
-     * Moves the object the specified number of cells parallel to the x axis.
-     * 
-     * @param distance The distance in cells for the object to move
+     * Returns the angle of rotation of this object.
+     *
+     * @return The angle of this object
      */
-    public void moveX(double distance) {
-        move(Vector2D.angledVector(0, distance));
+    public double getAngle(){
+        return angle;
     }
 
-    /**
-     * Moves the object the specified number of cells parallel to the y axis.
-     * 
-     * @param distance The distance in cells for the object to move
-     */
-    public void moveY(double distance) {
-        move(Vector2D.angledVector(90, distance));
-    }
 
-    /**
-     * Moves the whole distance step by step, executing {@code onStep} with the
-     * current number of steps as parameter. If {@code onStep} does not return
-     * {@code true}, the movement will be abbored.
-     * <p>If the movement is not interrupted, the final movement will always by
-     * the full length of {@code movement}, even if {@code movement.abs() %
-     * stepSize} is not {@code 0}.
-     * <p>The method will return the distance that was actually traveled as a
-     * vector. If there was no interferance, {@code moveInSteps(movement, x)
-     * == movement} and {@code movement.equals(moveInSteps(movement, x))} will
-     * be {@code true}. If there was interferance,
-     * {@code movement.equals(moveInSteps(movement, x))} may still be {@code
-     * true}, while {@code moveInSteps(movement, x) == movement} will be {@code
-     * false}.
-     * 
-     * @param movement The movement to move
-     * @param stepSize The size of each step
-     * @return The distance that was actually moved
-     */
-    public Vector moveInSteps(Vector movement, double stepSize, IntPredicate onStep) {
-        for(double i=0; i<movement.abs()-stepSize; i+= stepSize){
-            move(movement.normed().scale(stepSize));
-            if(!onStep.test((int)(i / stepSize))) return Vector2D.angledVector(movement.angle(), i);
-        }
-        move(movement.normed().scale(movement.abs() % stepSize));
-        if(!onStep.test((int)(movement.abs() / stepSize))) return Vector2D.angledVector(movement.angle(), (int)movement.abs());
-        return movement;
-    }
 
-    /**
-     * Moves the object the specified distance in the direction the object is
-     * facing using the specified step size.
-     * 
-     * @see #moveInSteps(Vector, double)
-     * @param distance
-     * @param stepSize
-     * @return The movement that actually happened
-     */
-    public Vector moveInSteps(double distance, double stepSize, IntPredicate onStep) {
-        return moveInSteps(Vector2D.angledVector(transform.rotation, distance), stepSize, onStep);
-    }
+
+
+
+    // -----------------------------------------------------------------------------
+    // Animating / automation
+    // -----------------------------------------------------------------------------
+
+
+
+
+
 
     /**
      * Sets the velocity of this object.
-     * 
+     *
      * @param velocity The new velocity for this object. Must not be
      *                 {@code null}
      */
@@ -747,176 +841,168 @@ public abstract class GameObject extends ComplexUpdateable {
     /**
      * Returns this object's velocity. Modifications to this vector <b>will</b>
      * effect it's velocity!
-     * 
+     *
      * @return This object's velocity
      */
     public Vector velocity() {
         return velocity;
     }
 
+    /**
+     * Runs the given animation on this object.
+     *
+     * @param animation The animation to run
+     * @return The runnable representing the animation. May be used to cancel the animation early
+     */
+    public Runnable animate(Animation animation) {
+        Runnable runnable = animation.build(this);
+        addOnUpdate(runnable);
+        return runnable;
+    }
+
+    public void link(GameObject object, Vector offset) {
+        Vector offsetClone = offset.clone();
+        addOnLateUpdate(() -> object.setLocation(getLocation().added(offsetClone.get2D().rotated(getAngle()))));
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------------------------
+    // Find methods
+    // -----------------------------------------------------------------------------
+
+
+
+
 
 
     /**
-     * Moves the object to the specified x coordinate.
+     * Returns all game objects of the specified class that intersect this
+     * object.
      * 
-     * @param x The new x coordinate
+     * @param <A> The type of object
+     * @param cls The class of the objects to return
+     * @return All intersecting game objects of the specified class
      */
-    public void setX(double x) {
-        setLocation(Vector.of(x, transform.location.y()));
+    @SuppressWarnings("unchecked")
+    protected <A> Set<A> findAllIntersecting(Class<A> cls) {
+        Objects.requireNonNull(cls);
+        return actor.getIntersectingObjects(SupportActor.class)
+                    .stream()
+                    .map(SupportActor::gameObject)
+                    .filter(cls::isInstance)
+                    .map(o -> (A)o)
+                    .collect(Collectors.toSet());
     }
 
     /**
-     * Moves the object to the specified y coordinate.
+     * Returns all game objects of the specified class that are at the specified
+     * location relative to this objects location.
      * 
-     * @param y The new y coordinate
+     * @param <A> The type of object
+     * @param dx The x offset to this objects location
+     * @param dy The y offset to this objects location
+     * @param cls The class of the objects to return
+     * @return All game objects at the specified offset of the given class
      */
-    public void setY(double y) {
-        setLocation(Vector.of(transform.location.x(), y));
+    @SuppressWarnings("unchecked")
+    protected <A> Set<A> findAllAtOffset(double dx, double dy, Class<A> cls) {
+        Objects.requireNonNull(cls);
+        Vector target = Vector.of(dx, dy).add(getLocation());
+        return map.findAll(SupportActor.class)
+                    .stream()
+                    .map(SupportActor::gameObject)
+                    .filter(cls::isInstance)
+                    .filter(o -> o.getLocation().equals(target))
+                    .map(o -> (A)o)
+                    .collect(Collectors.toSet());
     }
 
     /**
-     * Moves the object to the specified x and y coordinates. While floating point
-     * values may not be visible, they will be saved.
+     * Returns all game objects of the specified class that are in the given range.
      * 
-     * @param x The new x coordinate of the object
-     * @param y The new y coordinate of the object
+     * @param <A> The type of object
+     * @param radius The radius to search in (the exact coordinates matter, not the image)
+     * @param cls The class of the objects to return
+     * @return All game objects at the specified offset of the given class
      */
-    public void setLocation(double x, double y) {
-        setLocation(Vector.of(x, y));
+    @SuppressWarnings("unchecked")
+    protected <A> Set<A> findAllInRange(double radius, Class<A> cls) {
+        Objects.requireNonNull(cls);
+        return actor.getObjectsInRange((int)(radius + 1), null)
+                    .stream()
+                    .map(a -> ((SupportActor)a).gameObject())
+                    .filter(cls::isInstance)
+                    .filter(o -> Vector.between(getLocation(), o.getLocation()).abs() <= radius)
+                    .map(o -> (A)o)
+                    .collect(Collectors.toSet());
     }
 
     /**
-     * Moves the object to the specified location.
+     * Finds an object of the given class that graphically intersects this object.
      * 
-     * @param location The new location of the object
+     * @param <A> The type of object
+     * @param cls The class of the object to return
+     * @return An optional with an intersecting object, or an empty optional
      */
-    public void setLocation(Vector location) {
-        transform.location.set(location);
-        updateTransform();
+    @SuppressWarnings("unchecked")
+    protected <A> Optional<A> findIntersecting(Class<A> cls) {
+        Objects.requireNonNull(cls);
+        return Optional.ofNullable(actor.getWorld().getObjects(SupportActor.class)
+                            .stream()
+                            .map(SupportActor::gameObject)
+                            .filter(cls::isInstance)
+                            .filter(this::intersects)
+                            .map(o -> (A)o)
+                            .findAny()
+                            .orElse(null));
     }
 
     /**
-     * Moves the object to the location of the other object.
+     * Checks weather this game object graphically intersects the given object.
      * 
-     * @param toObjectsLocation The object to move to
+     * @param other The object to check collisions for
+     * @return {@code true} if the two objects intersect, {@code false} otherwise
      */
-    public void setLocation(GameObject toObjectsLocation) {
-        setLocation(toObjectsLocation.getLocation());
+    protected boolean intersects(GameObject other) {
+        Objects.requireNonNull(other);
+        return actor.intersects(other.actor);
     }
 
     /**
-     * Sets the rotations of the object. While floating point values may not be
-     * visible, they will be saved.
+     * Returns weather this object graphically touches an object of the given class.
      * 
-     * @param angle The rotation in degrees
+     * @param cls The class of the objects to check intersection for
+     * @return Weather this object touches any objects of the given class
      */
-    public void setRotation(double angle) {
-        transform.rotation = angle;
-        updateTransform();
+    protected boolean isTouching(Class<?> cls) {
+        return findIntersecting(cls).isPresent();
     }
 
     /**
-     * Turns the object the specified amount of degrees. Positive values will result
-     * in clockwise rotation, negative in counterclockwise.
-     * 
-     * @param angle The angle to turn the object in degrees
+     * Removes an intersecting object of the given class, if there is any.
      */
-    public void turn(double angle) {
-        setRotation(transform.rotation + angle);
-    }
-
-    /**
-     * Turn this object towards the given target.
-     * 
-     * @param target The object to look at
-     */
-    public void turnTowards(GameObject target) {
-        turnTowards(target.getLocation());
-    }
-
-    /**
-     * Turn this object towards the given target.
-     * 
-     * @param target The location to look at
-     */
-    public void turnTowards(Vector target) {
-        setRotation(Vector.between(getLocation(), target.get2D()).angle());
-    }
-
-    /**
-     * Turn this object facing towards the given target.
-     * 
-     * @param x The x coordinate of the target to look at
-     * @param y The y coordinate of the target to look at
-     */
-    public void turnTowards(double x, double y) {
-        turnTowards(Vector.of(x, y));
-    }
-
-    /**
-     * Sets the location and rotation of this object to the specified one.
-     * 
-     * @param transform The new transform of the object
-     */
-    public void setTransform(Transform2D transform) {
-        setLocation(transform.location);
-        setRotation(transform.rotation);
-    }
-
-    /**
-     * Updates the underlying actor's location.
-     */
-    protected void updateTransform(){
-        actor.superSetLocation((int)(transform.location.x() + 0.5), (int)(transform.location.y() + 0.5));
-        actor.superSetRotation((int)(transform.rotation + 0.5));
+    protected void removeOneTouching(Class<?> cls) {
+        findIntersecting(cls).ifPresent(o -> ((GameObject)o).remove());
     }
 
 
 
-    /**
-     * Returns the x coordinate of the object.
-     * 
-     * @return The x coordinate of the object
-     */
-    public double getX(){
-        return transform.location.x();
-    }
 
-    /**
-     * Returns the y coordinate of the object.
-     * 
-     * @return The y coordinate of the object
-     */
-    public double getY(){
-        return transform.location.y();
-    }
 
-    /**
-     * Returns the location of the object.
-     * 
-     * @return The location of the object
-     */
-    public Vector getLocation() {
-        return locationGetter;
-    }
 
-    /**
-     * Returns the angle of rotation of this object.
-     * 
-     * @return The angle of this object
-     */
-    public double getAngle(){
-        return transform.rotation;
-    }
+    // -----------------------------------------------------------------------------
+    // Listeners
+    // -----------------------------------------------------------------------------
 
-    /**
-     * Returns the transform of this object.
-     * 
-     * @return A transform representing the object's transform
-     */
-    public Transform2D getTransform(){
-        return new Transform2D(transform);
-    }
+
+
+
+    // Mouse interaction
+
 
 
 
@@ -939,7 +1025,7 @@ public abstract class GameObject extends ComplexUpdateable {
      * @param action The action to add
      * @return This object
      */
-    public GameObject addPressAction(Runnable action) {
+    public GameObject addOnPress(Runnable action) {
         onPress.add(Objects.requireNonNull(action));
         return this;
     }
@@ -951,7 +1037,7 @@ public abstract class GameObject extends ComplexUpdateable {
      * @param action The action to add
      * @return This object
      */
-    public GameObject addReleaseAction(Runnable action) {
+    public GameObject addOnRelease(Runnable action) {
         onRelease.add(Objects.requireNonNull(action));
         return this;
     }
@@ -963,7 +1049,7 @@ public abstract class GameObject extends ComplexUpdateable {
      * @param action The action to remove
      * @return This object
      */
-    public GameObject removeClickAction(Runnable action) {
+    public GameObject removeOnClick(Runnable action) {
         onClick.remove(action);
         return this;
     }
@@ -975,7 +1061,7 @@ public abstract class GameObject extends ComplexUpdateable {
      * @param action The action to remove
      * @return This object
      */
-    public GameObject removePressAction(Runnable action) {
+    public GameObject removeOnPress(Runnable action) {
         onPress.remove(action);
         return this;
     }
@@ -987,15 +1073,23 @@ public abstract class GameObject extends ComplexUpdateable {
      * @param action The action to remove
      * @return This object
      */
-    public GameObject removeReleaseAction(Runnable action) {
+    public GameObject removeOnRelease(Runnable action) {
         onRelease.remove(action);
         return this;
     }
 
+
+
+
+    // Other listeners
+
+
+
+
     /**
      * Adds the given action to be executes whenever the object gets added to a
      * different map.
-     * 
+     *
      * @param action The action to add
      * @return This object
      */
@@ -1023,7 +1117,7 @@ public abstract class GameObject extends ComplexUpdateable {
      * @param action The action to add
      * @return This object
      */
-    public GameObject removeAddedAction(Consumer<Map> action) {
+    public GameObject removeOnAdd(Consumer<Map> action) {
         onAdd.remove(action);
         return this;
     }
@@ -1035,31 +1129,30 @@ public abstract class GameObject extends ComplexUpdateable {
      * @return This object
      */
     public GameObject addOnUpdate(Runnable action) {
-        if(action == null) return this;
-        onUpdate.add(action);
+        if(action != null) addedOnUpdate.add(action);
         return this;
     }
 
     /**
-     * Registers the given updateable to be updated by this game object.
+     * Registers the given updatable to be updated by this game object.
      * 
-     * @param updateable The updateable to add
+     * @param updatable The updatable to add
      * @return This object
      */
     public GameObject register(Updateable updatable) {
         if(updatable == null) return this;
-        return addOnUpdate(() -> updatable.update());
+        return addOnUpdate(updatable::update);
     }
 
     /**
      * Removes the given action from those that will be executed during every update
      * sequence.
      * 
-     * @param action The action to remove
+     * @param listener The listener to remove
      * @return This object
      */
-    public GameObject removeUpdateListener(Runnable listener) {
-        onUpdate.remove(listener);
+    public GameObject removeOnUpdate(Runnable listener) {
+        if(listener != null) removedOnUpdate.add(listener);
         return this;
     }
 
@@ -1070,33 +1163,46 @@ public abstract class GameObject extends ComplexUpdateable {
      * @return This object
      */
     public GameObject addOnLateUpdate(Runnable action) {
-        if(action == null) return this;
-        onLateUpdate.add(action);
+        if(action != null) addedOnLateUpdate.add(action);
         return this;
     }
 
     /**
-     * Registers the given updateable to be updated later by this game object.
+     * Registers the given updatable to be updated later by this game object.
      * 
-     * @param updateable The updateable to add
+     * @param updatable The updatable to add
      * @return This object
      */
     public GameObject registerLate(Updateable updatable) {
         if(updatable == null) return this;
-        return addOnLateUpdate(() -> updatable.update());
+        return addOnLateUpdate(updatable::update);
     }
 
     /**
      * Removes the given action from those that will be executed later during every update
      * sequence.
      * 
-     * @param action The action to remove
+     * @param listener The listener to remove
      * @return This object
      */
-    public GameObject removeLateUpdateListener(Runnable listener) {
-        onLateUpdate.remove(listener);
+    public GameObject removeOnLateUpdate(Runnable listener) {
+        if(listener != null) removedOnLateUpdate.add(listener);
         return this;
     }
+
+
+
+
+
+
+    // -----------------------------------------------------------------------------
+    // Internals
+    // -----------------------------------------------------------------------------
+
+
+
+
+
 
     void addedToMap(Map map) {
         for(Consumer<Map> action : onAdd) action.accept(map);
@@ -1106,9 +1212,9 @@ public abstract class GameObject extends ComplexUpdateable {
 
     /**
      * Returns the underlying actor that represents this object on a greenfoot world.
-     * <p>Usually this method is not neccecary to use as the whole core package works
+     * <p>Usually this method is not necessary to use as the whole core package works
      * as an enclosed system.
-     * 
+     *
      * @param gameObject The object to get the actor from
      * @return The object's actor representation
      */
@@ -1122,12 +1228,13 @@ public abstract class GameObject extends ComplexUpdateable {
      * An implementation of actor that will on method calls first call the methods of
      * its game object. If is used to display a game object in a greenfoot world.
      */
-    static final class SupportActor extends Actor {
+    final class SupportActor extends Actor {
 
-        final GameObject gameObject;
-
-        private SupportActor(GameObject gameObject) {
-            this.gameObject = gameObject;
+        // false by default, gets assigned to true after super ctor call. MUST BE FINAL AND
+        // ASSIGNED INSTANTLY to work, otherwise it has the value true right away.
+        private final boolean initialized;
+        {
+            initialized = true;
         }
 
         @Override
@@ -1140,19 +1247,21 @@ public abstract class GameObject extends ComplexUpdateable {
             // Nothing - handled by the map to first set the exact added position and then call this stuff
         }
 
+        @SuppressWarnings("MethodDoesntCallSuperMethod")
         @Override
         protected Object clone() throws CloneNotSupportedException {
-            return gameObject.clone();
+            return GameObject.this.clone();
         }
 
+        @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
         @Override
         public boolean equals(Object obj) {
-            return gameObject.equals(obj);
+            return GameObject.this.equals(obj);
         }
 
         @Override
         public GreenfootImage getImage() {
-            return gameObject != null ? Image.asGImage(gameObject.getImage()) : super.getImage();
+            return Image.asGImage(GameObject.this.getImage());
         }
 
         @Override
@@ -1187,7 +1296,7 @@ public abstract class GameObject extends ComplexUpdateable {
 
         @Override
         public int getRotation() {
-            return (int)(gameObject.getAngle() + 0.5);
+            return (int)(GameObject.this.getAngle() + 0.5);
         }
 
         @Override
@@ -1202,25 +1311,17 @@ public abstract class GameObject extends ComplexUpdateable {
 
         @Override
         public int getX() {
-            return (int)(gameObject.getX() + 0.5);
-        }
-
-        int superGetX() {
-            return super.getX();
+            return (int)(GameObject.this.getX() + 0.5);
         }
 
         @Override
         public int getY() {
-            return (int)(gameObject.getY() + 0.5);
-        }
-
-        int superGetY() {
-            return super.getY();
+            return (int)(GameObject.this.getY() + 0.5);
         }
 
         @Override
         public int hashCode() {
-            return gameObject.hashCode();
+            return GameObject.this.hashCode();
         }
 
         @Override
@@ -1230,7 +1331,10 @@ public abstract class GameObject extends ComplexUpdateable {
 
         @Override
         public boolean isAtEdge() {
-            return gameObject.isAtEdge();
+            return GameObject.this.getX() <= 0
+                    || GameObject.this.getY() <= 0
+                    || GameObject.this.getX() >= GameObject.this.getMap().get().getWidth() - 1
+                    || GameObject.this.getY() >= GameObject.this.getMap().get().getHeight() - 1;
         }
 
         @Override
@@ -1240,7 +1344,7 @@ public abstract class GameObject extends ComplexUpdateable {
 
         @Override
         public void move(int distance) {
-            gameObject.move(distance);
+            GameObject.this.move(distance);
             setLocation(getX(), getY());
         }
 
@@ -1251,8 +1355,11 @@ public abstract class GameObject extends ComplexUpdateable {
 
         @Override
         public void setImage(GreenfootImage image) {
-            // Called on super ctor so on the first time it's null
-            if(gameObject != null) gameObject.setImage(Image.of(image));
+            // When creating a new instance setImage gets called from Actor ctor before
+            // the appropriate field in GameObject is assigned. We skip that one:
+            // initialized gets assigned after the super call, and is false by default.
+            // Later we assign out own default image.
+            if(initialized) GameObject.this.setImage(Image.of(image));
         }
 
         void superSetImage(GreenfootImage image) {
@@ -1261,13 +1368,13 @@ public abstract class GameObject extends ComplexUpdateable {
 
         @Override
         public void setImage(String filename) throws IllegalArgumentException {
-            gameObject.setImage(Image.load(filename));
+            GameObject.this.setImage(Image.load(filename));
             super.setImage(getImage());
         }
 
         @Override
         public void setLocation(int x, int y) {
-            gameObject.setLocation(x, y);
+            GameObject.this.setLocation(x, y);
         }
 
         void superSetLocation(int x, int y) {
@@ -1276,7 +1383,7 @@ public abstract class GameObject extends ComplexUpdateable {
 
         @Override
         public void setRotation(int rotation) {
-            gameObject.setRotation(rotation);
+            GameObject.this.setAngle(rotation);
         }
 
         void superSetRotation(int rotation) {
@@ -1285,19 +1392,23 @@ public abstract class GameObject extends ComplexUpdateable {
 
         @Override
         public String toString() {
-            return gameObject.toString();
+            return GameObject.this.toString();
         }
 
         @Override
         public void turn(int amount) {
-            gameObject.turn(amount);
+            GameObject.this.turn(amount);
             setRotation(getRotation());
         }
 
         @Override
         public void turnTowards(int x, int y) {
-            gameObject.turnTowards(x, y);
+            GameObject.this.turnTowards(x, y);
             setRotation(getRotation());
+        }
+
+        GameObject gameObject() {
+            return GameObject.this;
         }
     }
 }
