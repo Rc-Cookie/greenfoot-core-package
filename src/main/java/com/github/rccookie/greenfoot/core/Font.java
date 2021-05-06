@@ -2,16 +2,14 @@ package com.github.rccookie.greenfoot.core;
 
 import java.util.Objects;
 
-import greenfoot.Font;
-
 /**
- * A subclass of {@link Font} that adds the ability to calculate
+ * A subclass of {@link greenfoot.Font} that adds the ability to calculate
  * the size of text that is printed.
  * 
  * @author RcCookie
  * @version 0.1
  */
-public abstract class FontStyle extends Font {
+public abstract class Font extends greenfoot.Font {
 
     static {
         Core.initialize();
@@ -20,10 +18,10 @@ public abstract class FontStyle extends Font {
     private final double newLineDim;
     private final double onlineScale;
 
-    private FontStyle(String name, boolean bold, boolean italic, int size, double newLineDim, double onlineScale) {
+    private Font(String name, boolean bold, boolean italic, int size, double newLineDim, double onlineScale) {
         super(name, bold, italic, size);
         this.newLineDim = newLineDim;
-        this.onlineScale = Core.isOnline() ? onlineScale : 1;
+        this.onlineScale = Core.getSession() == Session.ONLINE ? onlineScale : 1;
     }
 
     /**
@@ -48,10 +46,10 @@ public abstract class FontStyle extends Font {
     }
 
     /**
-     * Returns the width of the given char relative to the fint size.
+     * Returns the width of the given char relative to the font size.
      * 
      * @param c The char to get the width for
-     * @return The char's witdh
+     * @return The char's width
      */
     protected abstract double getCharWidth(char c);
 
@@ -68,11 +66,11 @@ public abstract class FontStyle extends Font {
     }
 
     @Override
-    public FontStyle deriveFont(float size) {
-        return new FontStyle(getName(), isBold(), isItalic(), (int)size, newLineDim, onlineScale) {
+    public Font deriveFont(float size) {
+        return new Font(getName(), isBold(), isItalic(), (int)size, newLineDim, onlineScale) {
             @Override
             protected double getCharWidth(char c) {
-                return FontStyle.this.getCharWidth(c);
+                return Font.this.getCharWidth(c);
             }
         };
     }
@@ -80,8 +78,8 @@ public abstract class FontStyle extends Font {
     @Override
     public boolean equals(Object obj) {
         if(obj == this) return true;
-        if(!(obj instanceof FontStyle)) return false;
-        FontStyle f = (FontStyle)obj;
+        if(!(obj instanceof Font)) return false;
+        Font f = (Font)obj;
         return Objects.equals(getName(), f.getName())
             && isBold() == f.isBold()
             && isItalic() == f.isItalic()
@@ -92,21 +90,21 @@ public abstract class FontStyle extends Font {
 
 
     /**
-     * Creates a new FontStyle from the given {@link Font}. The returned instance will
+     * Creates a new FontStyle from the given {@link greenfoot.Font}. The returned instance will
      * throw an exception if the width is requested. If the given font already is an
      * instance of FontStyle, it will be returned itself.
      * 
      * @param gFont The greenfoot.Font to convert to a FontStyle
      * @return A FontStyle representing the given font
      */
-    public static final FontStyle of(Font gFont) {
-        if(gFont instanceof FontStyle) return (FontStyle)gFont;
+    public static Font of(greenfoot.Font gFont) {
+        if(gFont instanceof Font) return (Font)gFont;
         return new GreenfootFontFontStyle(gFont);
     }
 
-    private static final class GreenfootFontFontStyle extends FontStyle {
+    private static final class GreenfootFontFontStyle extends Font {
 
-        private GreenfootFontFontStyle(Font gFont) {
+        private GreenfootFontFontStyle(greenfoot.Font gFont) {
             super(gFont.getName(), gFont.isBold(), gFont.isItalic(), gFont.getSize(), 1, 1);
         }
 
@@ -118,26 +116,37 @@ public abstract class FontStyle extends Font {
 
 
 
+    public static Font standard(int size) {
+        return new Font("Standard", Core.getRealSession() != Session.ONLINE, false, size, 0, 0) {
+            @Override
+            protected double getCharWidth(char c) {
+                throw new RuntimeException("Tried to render standard font in custom context");
+            }
+        };
+    }
+
+
+
     /**
-     * Returns a monostace styled font.
+     * Returns a monospace styled font.
      * 
      * @param size The font size
      * @return The monospace font
      */
-    public static final FontStyle monospace(int size) {
+    public static Font monospace(int size) {
         return monospace(size, false, false);
     }
 
     /**
-     * Returns a monostace styled font.
+     * Returns a monospace styled font.
      * 
      * @param size The font size
      * @param bold Weather the font should be bold
      * @param italic Weather the font should be italic
      * @return The monospace font
      */
-    public static final FontStyle monospace(int size, boolean bold, boolean italic) {
-        return new FontStyle("Consolas", bold, italic, size, 0.2, 0.975) {
+    public static Font monospace(int size, boolean bold, boolean italic) {
+        return new Font("Consolas", bold, italic, size, 0.2, 0.975) {
             @Override
             protected double getCharWidth(char c) {
                 return 0.567;
@@ -153,7 +162,7 @@ public abstract class FontStyle extends Font {
      * @param size The font size
      * @return The monospace font
      */
-    public static final FontStyle modern(int size) {
+    public static Font modern(int size) {
         return modern(size, false, false);
     }
 
@@ -165,8 +174,8 @@ public abstract class FontStyle extends Font {
      * @param italic Weather the font should be italic
      * @return The monospace font
      */
-    public static final FontStyle modern(int size, boolean bold, boolean italic) {
-        return new FontStyle("Segoe UI", bold, italic, size, 0.38, 1.025) {
+    public static Font modern(int size, boolean bold, boolean italic) {
+        return new Font("Segoe UI", bold, italic, size, 0.38, 1.025) {
             @Override
             protected double getCharWidth(char c) {
                 // I know that switch exists but its ugly in Java 11
@@ -380,7 +389,7 @@ public abstract class FontStyle extends Font {
 
 
 
-    private static final int numberOfLines(String string) {
+    private static int numberOfLines(String string) {
         int count = 1;
         while(string.contains("\n")) {
             string = string.replaceFirst("\n", "");
