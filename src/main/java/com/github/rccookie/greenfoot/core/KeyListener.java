@@ -4,6 +4,10 @@ import java.util.function.Consumer;
 
 public class KeyListener extends Listener {
 
+    static {
+        Core.initialize();
+    }
+
     public KeyListener(Consumer<Listener> onPress, Consumer<Listener> onRelease, Consumer<Listener> onHold, String... keys) {
         super(() -> getState(keys), onPress, onRelease, onHold, true);
     }
