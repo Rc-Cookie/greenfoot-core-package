@@ -1,18 +1,20 @@
 package com.github.rccookie.greenfoot.core;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
+import com.diogonunes.jcolor.Attribute;
+import com.github.rccookie.util.Console;
 import com.github.rccookie.greenfoot.java.util.Optional;
-
 import greenfoot.UserInfo;
 import greenfoot.util.GreenfootUtil;
 
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.stream.Collectors;
+
 /**
- * A wrapper class for the {@link UserInfo} class that allowes to create virtual
- * users and contains some conveniance methods.
+ * A wrapper class for the {@link UserInfo} class that allows to create virtual
+ * users and contains some convenience methods.
  * 
  * @author RcCookie
  * @version 1.1
@@ -24,7 +26,7 @@ public class User {
     }
 
     /**
-     * The number of avaliable integer slots for {@link #getInt(int)} and
+     * The number of available integer slots for {@link #getInt(int)} and
      * {@link #setInt(int, int)}.
      */
     public static final int NUM_INTS = UserInfo.NUM_INTS;
@@ -66,6 +68,9 @@ public class User {
      * The Strings mapped to the user.
      */
     private final String[] strings = new String[NUM_STRINGS];
+    {
+        Arrays.fill(strings, "");
+    }
 
     /**
      * The UserInfo that stores this user's data.
@@ -193,7 +198,7 @@ public class User {
      */
     public void setInt(int index, int value) {
         ints[index] = value;
-        userInfo.setInt(index, value);
+        if(userInfo != null) userInfo.setInt(index, value);
         modified = true;
     }
 
@@ -206,8 +211,9 @@ public class User {
      * @param value The value to store
      */
     public void setString(int index, String value) {
+        if(value == null) value = "";
         strings[index] = value;
-        userInfo.setString(index, value);
+        if(userInfo != null) userInfo.setString(index, value);
         modified = true;
     }
 
@@ -219,7 +225,7 @@ public class User {
      */
     public void setScore(int score) {
         this.score = score;
-        userInfo.setScore(score);
+        if(userInfo != null) userInfo.setScore(score);
     }
 
     /**
@@ -255,10 +261,10 @@ public class User {
      * Stores any changes to the server.
      * <p>If this user is marked as virtual, this method will simply return {@code true}
      * and not store anything. Otherwise, you can only store the user that is returned by
-     * {@link #now()}, otherwise {@code false} will be returned.
+     * {@link #current()}, otherwise {@code false} will be returned.
      * 
      * @return {@code true} indicates that the store was successful, however {@code false}
-     *         does not neccecarily mean the store failed, the UserInfo class is not very
+     *         does not necessarily mean the store failed, the UserInfo class is not very
      *         reliable here
      */
     public boolean store() {
@@ -271,7 +277,7 @@ public class User {
 
     /**
      * Indicates weather storing any modified data using {@link #store()} should work. If
-     * this returns {@code false} storing will definetly have no effect. This can happen
+     * this returns {@code false} storing will definitely have no effect. This can happen
      * if the user is virtual or not the current Greenfoot user's user object.
      * 
      * @return Weather storing using {@link #store()} will work.
@@ -285,7 +291,22 @@ public class User {
         return "User '" + getName() + "'";
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User)) return false;
+        User user = (User) o;
+        return getRank() == user.getRank() && getScore() == user.getScore() && getName().equals(user.getName()) &&
+                Arrays.equals(ints, user.ints) && Arrays.equals(strings, user.strings);
+    }
 
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(getName(), getRank(), getScore());
+        result = 31 * result + Arrays.hashCode(ints);
+        result = 31 * result + Arrays.hashCode(strings);
+        return result;
+    }
 
     /**
      * Creates a new virtual user with the given name and rank.
@@ -315,6 +336,17 @@ public class User {
      * @return An optional containing the current user's user object, or empty
      */
     public static Optional<User> current() {
+        if(Core.getRealSession() == Session.STANDALONE) {
+            String name = getStandaloneUsername();
+            return Optional.ofNullable(getStandaloneUsers().stream()
+                    .filter(u -> u.getName().equals(name))
+                    .findAny()
+                    .orElseGet(() -> {
+                        User user = new StandaloneUser(name);
+                        user.store();
+                        return user;
+                    }));
+        }
         UserInfo userInfo = UserInfo.getMyInfo();
         if(userInfo == null) return Optional.empty();
         return Optional.of(new User(UserInfo.getMyInfo()));
@@ -327,7 +359,7 @@ public class User {
      * @return The current user or a guest user
      */
     public static User getOrGuest() {
-        return current().orElseGet(() -> createGuest());
+        return current().orElseGet(User::createGuest);
     }
 
     /**
@@ -357,9 +389,23 @@ public class User {
      */
     @SuppressWarnings("unchecked")
     public static List<User> getNearby(int maxAmount) {
+        if(Core.getRealSession() == Session.STANDALONE) {
+
+            // Ensure the list actually contains the user
+            User user = current().get(); // Can't be null if session is standalone
+
+            List<User> users = getStandaloneUsers();
+            if(users.size() <= maxAmount) return users;
+
+            users = new ArrayList<>(users);
+            while(users.size() > maxAmount && users.indexOf(user) > maxAmount / 2) users.remove(0);
+            while(users.size() > maxAmount && users.size() - users.indexOf(user) > maxAmount / 2) users.remove(users.size() - 1);
+
+            return Collections.unmodifiableList(users);
+        }
         List<UserInfo> returned = ((List<UserInfo>)UserInfo.getNearby(maxAmount));
         if(returned == null) return Collections.emptyList();
-        return returned.stream().map(info -> new User(info)).collect(Collectors.toList());
+        return returned.stream().map(User::new).collect(Collectors.toList());
     }
 
     /**
@@ -382,13 +428,15 @@ public class User {
      */
     @SuppressWarnings("unchecked")
     public static List<User> getTop(int maxAmount) {
-        return ((List<UserInfo>)UserInfo.getTop(maxAmount)).stream().map(info -> new User(info)).collect(Collectors.toList());
+        if(Core.getRealSession() == Session.STANDALONE)
+            return getStandaloneUsers().stream().limit(maxAmount).collect(Collectors.toList());
+        return ((List<UserInfo>)UserInfo.getTop(maxAmount)).stream().map(User::new).collect(Collectors.toList());
     }
 
     /**
-     * Trys to return the user object of the Greenfoot user with the specified name. Note that you cannot store
+     * Tries to return the user object of the Greenfoot user with the specified name. Note that you cannot store
      * anything for that user if its not the current users' user, in which case you can request it using
-     * {@link #now()}. The user may not be found even if he has an account because no data was ever stored.
+     * {@link #current()}. The user may not be found even if he has an account because no data was ever stored.
      * 
      * @param name The name of the user to search for
      * @return An optional containing the user with the specified name, or empty
@@ -398,7 +446,7 @@ public class User {
     }
 
     /**
-     * Trys to find the user object for the Greenfoot user with the specified name using {@link #find(String)}.
+     * Tries to find the user object for the Greenfoot user with the specified name using {@link #find(String)}.
      * If no user was found a virtual user with that name and a rank of {@code -1} will be returned.
      * 
      * @param name The name of the user to find
@@ -406,5 +454,164 @@ public class User {
      */
     public static User findOrCreate(String name) {
         return find(name).orElseGet(() -> create(name, -1));
+    }
+
+
+
+
+
+
+    private static List<User> getStandaloneUsers() {
+        try {
+            List<User> users = Files.readAllLines(Path.of("storage.csv")).stream()
+                    .filter(s -> !s.isBlank())
+                    .map(s -> {
+                        StringBuilder remaining = new StringBuilder(s.strip());
+                        remaining.deleteCharAt(0);
+
+                        // Parse name
+
+                        StringBuilder name = new StringBuilder();
+                        while(remaining.charAt(0) != '"') {
+                            if(remaining.toString().startsWith("\\\"")) {
+                                name.append('"');
+                                remaining.delete(0, 2);
+                            }
+                            else {
+                                name.append(remaining.charAt(0));
+                                remaining.deleteCharAt(0);
+                            }
+                        }
+                        remaining.deleteCharAt(0);
+                        Console.mapDebug("Name", name);
+
+                        User user = new StandaloneUser(name.toString());
+
+                        // Parse score
+
+                        remaining = new StringBuilder(remaining.toString().stripLeading().substring(1).stripLeading());
+                        remaining.deleteCharAt(0);
+
+                        StringBuilder score = new StringBuilder();
+                        while(remaining.charAt(0) != '"') {
+                            score.append(remaining.charAt(0));
+                            remaining.deleteCharAt(0);
+                        }
+                        remaining.deleteCharAt(0);
+                        user.setScore(Integer.parseInt(score.toString()));
+
+                        // Parse ints
+
+                        for(int i=0; i<NUM_INTS; i++) {
+                            remaining = new StringBuilder(remaining.toString().stripLeading().substring(1).stripLeading());
+                            remaining.deleteCharAt(0);
+
+                            StringBuilder intI = new StringBuilder();
+                            while(remaining.charAt(0) != '"') {
+                                intI.append(remaining.charAt(0));
+                                remaining.deleteCharAt(0);
+                            }
+                            remaining.deleteCharAt(0);
+                            user.setInt(i, Integer.parseInt(intI.toString()));
+                        }
+
+                        // Parse strings
+
+                        for(int i=0; i<NUM_STRINGS; i++) {
+                            remaining = new StringBuilder(remaining.toString().stripLeading().substring(1).stripLeading());
+                            remaining.deleteCharAt(0);
+
+                            StringBuilder stringI = new StringBuilder();
+                            while(remaining.charAt(0) != '"') {
+                                if(remaining.toString().startsWith("\\\"")) {
+                                    stringI.append('"');
+                                    remaining.delete(0, 2);
+                                }
+                                else {
+                                    stringI.append(remaining.charAt(0));
+                                    remaining.deleteCharAt(0);
+                                }
+                            }
+                            remaining.deleteCharAt(0);
+
+                            user.setString(i, stringI.toString());
+                        }
+
+                        return user;
+                    })
+                    .sorted((a,b) -> b.getScore() - a.getScore())
+                    .collect(Collectors.toList());
+
+            for(int i=0; i<users.size(); i++) ((StandaloneUser) users.get(i)).setRank(i+1);
+            return users;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
+    }
+
+    private static String getStandaloneUsername() {
+        Properties props = new Properties();
+        try {
+            props.load(new FileInputStream("standalone.properties"));
+            String name = props.getProperty("user.name");
+            if(name == null) throw new IOException();
+            return name;
+        } catch(IOException e) {
+            Console.warn("Could not load username from standalone.properties, define it as '{}'", Console.colored("user.name=<Username>", Attribute.YELLOW_TEXT()));
+            return "UnknownUser";
+        }
+    }
+
+    private static class StandaloneUser extends User {
+
+        private int rank;
+
+        StandaloneUser(String name) {
+            super(name, 1);
+        }
+
+        void setRank(int rank) {
+            this.rank = rank;
+        }
+
+        @Override
+        public boolean store() {
+            Console.debug("Storing...");
+            try {
+                File file = new File("storage.csv");
+
+                StringBuilder out = new StringBuilder();
+                out.append('"').append(getName()).append("\",\"").append(getScore()).append('"');
+
+                for(int i=0; i<NUM_INTS; i++) out.append(",\"").append(getInt(i)).append('"');
+                for(int i=0; i<NUM_STRINGS; i++) out.append(",\"").append(getString(i)).append('"');
+                out.append('\n');
+
+                if(file.exists())
+                    out.append(Files.readAllLines(Path.of("storage.csv")).stream()
+                            .filter(s -> !s.stripLeading().substring(1).startsWith(getName()))
+                            .collect(Collectors.joining("\n")));
+
+                Console.mapDebug("Printing ", out);
+                new Formatter("storage.csv").format(out.toString()).close();
+                return true;
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+
+        @Override
+        public boolean isVirtual() {
+            return false;
+        }
+
+        @Override
+        public int getRank() {
+            return rank;
+        }
     }
 }
