@@ -72,7 +72,7 @@ public class MouseState {
      * Creates a new MouseState from the given MouseInfo.
      * 
      * @param mouseInfo The MouseInfo to base this mouse state on.
-     * @param real Weather this mouse state should be marked as real
+     * @param emulated Weather this mouse state should be marked as emulated
      */
     private MouseState(MouseInfo mouseInfo, boolean emulated) {
         this(mouseInfo.getActor(), mouseInfo.getButton(), mouseInfo.getClickCount(), new Vector2D(mouseInfo.getX(), mouseInfo.getY()), emulated);
@@ -85,7 +85,7 @@ public class MouseState {
      * @param button The button related to this mouse state
      * @param clickCount The click count related to this mouse state
      * @param location The mouse location
-     * @param real Weather this mouse state should be marked as real
+     * @param emulated Weather this mouse state should be marked as emulated
      */
     private MouseState(Actor actor, int button, int clickCount, Vector location, boolean emulated) {
         this.actor = actor;
@@ -98,7 +98,7 @@ public class MouseState {
     }
 
     /**
-     * Returns a representive string of this mouse state in the format
+     * Returns a representative string of this mouse state in the format
      * {@code "Mouse at " + location.toString()} which will usually result in
      * {@code "Mouse at [x|y]"}.
      */
@@ -116,7 +116,7 @@ public class MouseState {
      * @param mouseInfo The MouseInfo to base this mouse state on
      * @return The emulated mouse state
      */
-    public static final MouseState emulate(MouseInfo mouseInfo) {
+    public static MouseState emulate(MouseInfo mouseInfo) {
         return new MouseState(mouseInfo, false);
     }
 
@@ -129,7 +129,7 @@ public class MouseState {
      * @param location The mouse location
      * @return The emulated mouse state
      */
-    public static final MouseState emulate(Actor actor, int button, int clickCount, Vector location) {
+    public static MouseState emulate(Actor actor, int button, int clickCount, Vector location) {
         return new MouseState(actor, button, clickCount, location, false);
     }
 
@@ -138,7 +138,7 @@ public class MouseState {
      * 
      * @return The current mouse state, or an empty optional
      */
-    public static final Optional<MouseState> now() {
+    public static Optional<MouseState> now() {
         MouseInfo mouseInfo = Greenfoot.getMouseInfo();
         if(mouseInfo == null) return Optional.empty();
         return Optional.of(last = new MouseState(mouseInfo, true));
@@ -150,7 +150,7 @@ public class MouseState {
      * 
      * @return The latest non-null mouse state
      */
-    public static final MouseState get() {
+    public static MouseState get() {
         return now().orElse(last);
     }
 
@@ -161,7 +161,7 @@ public class MouseState {
      * onto the specified object. The object may be an Actor, a World or {@code null}
      * which will trigger on any press.
      */
-    public static final boolean pressed(Object onto) {
+    public static boolean pressed(Object onto) {
         return Greenfoot.mousePressed(onto);
     }
 
@@ -170,7 +170,7 @@ public class MouseState {
      * of the specified object. The object may be an Actor, a World or {@code null}
      * which will trigger on any release.
      */
-    public static final boolean released(Object onTopOf) {
+    public static boolean released(Object onTopOf) {
         return Greenfoot.mouseClicked(onTopOf);
     }
 
@@ -179,7 +179,7 @@ public class MouseState {
      * of the specified object. The object may be an Actor, a World or {@code null}
      * which will trigger on any movement.
      */
-    public static final boolean moved(Object onTopOf) {
+    public static boolean moved(Object onTopOf) {
         return Greenfoot.mouseMoved(onTopOf);
     }
 
@@ -189,7 +189,7 @@ public class MouseState {
      * The object may be an Actor, a World or {@code null} which will trigger on
      * any mouse drag.
      */
-    public static final boolean dragged(Object startedOnTopOf) {
+    public static boolean dragged(Object startedOnTopOf) {
         return Greenfoot.mouseDragged(startedOnTopOf);
     }
 
@@ -199,7 +199,7 @@ public class MouseState {
      * started on top of the specified object. The object may be an Actor, a World
      * or {@code null} which will trigger on any mouse drag.
      */
-    public static final boolean dragEnded(Object startedOnTopOf) {
+    public static boolean dragEnded(Object startedOnTopOf) {
         return Greenfoot.mouseDragEnded(startedOnTopOf);
     }
 }
