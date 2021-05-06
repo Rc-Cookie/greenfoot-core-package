@@ -7,6 +7,7 @@ package com.github.rccookie.greenfoot.core;
  * @author RcCookie
  * @version 1.0
  */
+@SuppressWarnings("StaticInitializerReferencesSubClass")
 public class Color implements Cloneable {
 
     static {
@@ -76,7 +77,7 @@ public class Color implements Cloneable {
     /**
      * The color dark gray.
      */
-    public static final Color DARK_GRAY = new NamedColor(64, 64, 64, "drak gray");
+    public static final Color DARK_GRAY = new NamedColor(64, 64, 64, "dark gray");
 
     /**
      * The color black.
@@ -100,6 +101,7 @@ public class Color implements Cloneable {
     /**
      * Creates a copy of the given color.
      */
+    @SuppressWarnings("CopyConstructorMissesField")
     public Color(Color copy) {
         this(copy.getRed(), copy.getGreen(), copy.getBlue(), copy.getAlpha());
     }
@@ -143,7 +145,7 @@ public class Color implements Cloneable {
      * Creates a copy of this color.
      */
     @Override
-    protected Color clone() {
+    public Color clone() {
         return new Color(this);
     }
 
@@ -256,7 +258,7 @@ public class Color implements Cloneable {
 
 
     /**
-     * Returns a representive string for this color. This will be it's color code
+     * Returns a representative string for this color. This will be it's color code
      * in hexadecimal, and, if not 255, its transparency added.
      * <p>For example, {@code new Color(255, 255, 255).toString()} will result in
      * {@code #FFFFFF} and {@code new Color(0,0,0,0).toString()} will return
@@ -264,10 +266,12 @@ public class Color implements Cloneable {
      */
     @Override
     public String toString() {
-        String s = '#' + Integer.toHexString(getRed()).toUpperCase() + Integer.toHexString(getGreen()).toUpperCase() + Integer.toHexString(getBlue()).toUpperCase();
+        StringBuilder s = new StringBuilder(7);
+        s.append('#');
+        s.append(String.format("%02X", getRed())).append(String.format("%02X", getGreen())).append(String.format("%02X", getBlue()));
         int a = getAlpha();
-        if(a != 255) s += " (" + a + ")";
-        return s;
+        if(a != 255) s.append(String.format("%02X", a));
+        return s.toString();
     }
 
 
@@ -327,7 +331,7 @@ public class Color implements Cloneable {
      * @param blue The color's blue value
      * @return A color with the specified values
      */
-    public static final Color relative(double red, double green, double blue) {
+    public static Color relative(double red, double green, double blue) {
         return relative(red, green, blue, 1);
     }
 
@@ -338,10 +342,10 @@ public class Color implements Cloneable {
      * @param red The color's red value
      * @param green The color's green value
      * @param blue The color's blue value
-     * @param alpha The color's aphy value, where {@code 0} means transparent
+     * @param alpha The color's alpha value, where {@code 0} means transparent
      * @return A color with the specified values
      */
-    public static final Color relative(double red, double green, double blue, double alpha) {
+    public static Color relative(double red, double green, double blue, double alpha) {
         return new Color((int)(red * 255), (int)(green * 255), (int)(blue * 255), (int)(alpha * 255));
     }
 
@@ -385,11 +389,16 @@ public class Color implements Cloneable {
 
         /**
          * Returns the super definition of {@link #toString()} and appends {@code "name"}
-         * where {@code name} stands for the in the constructur specified name.
+         * where {@code name} stands for the in the constructor specified name.
          */
         @Override
         public String toString() {
             return super.toString() + " \"" + name + '"';
+        }
+
+        @Override
+        public NamedColor clone() {
+            return new NamedColor(getRed(), getGreen(), getBlue(), getAlpha(), name);
         }
     }
 
@@ -401,7 +410,7 @@ public class Color implements Cloneable {
      * @param gColor The {@link greenfoot.Color} to convert
      * @return The converted color
      */
-    public static final Color of(greenfoot.Color gColor) {
+    public static Color of(greenfoot.Color gColor) {
         return new Color(gColor);
     }
 
@@ -411,7 +420,7 @@ public class Color implements Cloneable {
      * @param color The color to convert
      * @return The converted {@link greenfoot.Color}
      */
-    public static final greenfoot.Color asGColor(Color color) {
+    public static greenfoot.Color asGColor(Color color) {
         return color.gColor;
     }
 }
