@@ -1,16 +1,19 @@
 package com.github.rccookie.greenfoot.core;
 
-import java.awt.image.BufferedImage;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-
+import com.github.rccookie.greenfoot.java.util.Optional;
 import com.github.rccookie.util.Console;
-
 import greenfoot.Greenfoot;
 import greenfoot.World;
 import greenfoot.core.Simulation;
 import greenfoot.core.WorldHandler;
 import greenfoot.event.SimulationListener.AsyncEvent;
+import greenfoot.platforms.GreenfootUtilDelegate;
+import greenfoot.platforms.ide.GreenfootUtilDelegateIDE;
+import greenfoot.util.GreenfootUtil;
+
+import java.awt.image.BufferedImage;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 /**
  * Utility class to work with the simulation and more, for example getting random numbers.
@@ -22,47 +25,43 @@ public final class Core  {
 
     /**
      * Indicates weather the current session is online or on the Greenfoot application.
-     * Offline the code runs plain java ansuring that any java functionallity will work.
+     * Offline the code runs plain java ensuring that any java functionality will work.
      * Online however the code gets converted to javascript which is not very reliable
      * and does not have all classes that java has. Therefore special handling when
-     * operating online max be helpful or neccecary.
+     * operating online max be helpful or necessary.
      */
-    private static final boolean IS_ONLINE = testOnline();
+    private static final Session SESSION;
 
-    private static final boolean testOnline() {
-        initialize(); // To format console output
-
-        int oldWidth = Console.Config.manualConsoleWidth;
-        Console.Config.manualConsoleWidth = 150;
-
-        boolean isOnline = false;
-        // Simple test that will throw an exception when online due to missing class
-        // If offline this will do nothing else than some console settings
+    static {
+        Session session;
         try {
             onlineTestCommand();
-            Console.Config.manualConsoleWidth = oldWidth;
-            Console.split("Offline session");
-        } catch(Exception e) {
-            isOnline = true;
-            Console.split("Online session");
-            e.printStackTrace();
-        } catch(Error e) {
-            isOnline = true;
-            Console.split("Online session (Error - this is weird...)");
-            e.printStackTrace();
+            try {
+                Field delegateField = GreenfootUtil.class.getDeclaredField("delegate");
+                delegateField.setAccessible(true);
+                GreenfootUtilDelegate delegate = (GreenfootUtilDelegate) delegateField.get(null);
+                session = delegate instanceof GreenfootUtilDelegateIDE ? Session.OFFLINE : Session.STANDALONE;
+            } catch (Exception e) {
+                e.printStackTrace();
+                session = Session.OFFLINE;
+            }
+        } catch (Exception e) {
+            session = Session.ONLINE;
         }
-        return isOnline;
+        SESSION = session;
+
+        initialize();
+        Console.split(SESSION.toString());
     }
 
-    private static final void onlineTestCommand() throws Exception, Error {
-        // If this works there is basically no need to differ between online and
-        // offline anyways.
+    @SuppressWarnings("RedundantThrows")
+    private static void onlineTestCommand() throws Exception {
         new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
     }
 
 
 
-    private static Boolean onlineOverride = null;
+    private static Session sessionOverride = null;
 
     /**
      * The factor the target speed has to be scaled with to reach online the
@@ -94,7 +93,8 @@ public final class Core  {
      * using {@link Greenfoot#start()} and {@link Greenfoot#stop()}. Only used if
      * reflection of {@link Simulation#paused} fails.
      */
-    private static boolean propablyRunning = false;
+    @SuppressWarnings("JavadocReference")
+    private static boolean probablyRunning = false;
 
 
 
@@ -105,7 +105,7 @@ public final class Core  {
      * @param prompt The information that describes what the user should enter
      * @return The text that the user entered
      */
-    public static final String ask(String prompt) {
+    public static String ask(String prompt) {
         return Greenfoot.ask(prompt);
     }
 
@@ -115,7 +115,7 @@ public final class Core  {
      * 
      * @param timeSteps The number of time steps to pause the scenario
      */
-    public static final void pause(int timeSteps) {
+    public static void pause(int timeSteps) {
         Greenfoot.delay(timeSteps);
     }
 
@@ -124,7 +124,7 @@ public final class Core  {
      * 
      * @return The microphone input level
      */
-    public static final double getMicInLevel() {
+    public static double getMicInLevel() {
         return Greenfoot.getMicLevel() / 100d;
     }
 
@@ -135,9 +135,9 @@ public final class Core  {
      * @param min The lower limit
      * @param max The upper limit
      * @param step The step size of the numbers possibly returned.
-     * @return A random number in the specified ruleset
+     * @return A random number
      */
-    public static final double random(double min, double max, double step) { // 2, 4, 0.5
+    public static double random(double min, double max, double step) { // 2, 4, 0.5
         double range = max - min; // 4 - 2 = 2
         int oneStepRange = (int)(range / step); // 2 / 0.5 = 4
         return Greenfoot.getRandomNumber(oneStepRange) * 0.5 + min; // [0|1|2|3] * 0.5 + 2 = [0|0.5|1|1.5] + 2 = [2|2.5|3|3.5]
@@ -150,9 +150,9 @@ public final class Core  {
      * @param min The lower limit
      * @param max The upper limit
      * @param step The step size of the numbers possibly returned.
-     * @return A random integer in the specified ruleset
+     * @return A random integer
      */
-    public static final int random(int min, int max, int step) {
+    public static int random(int min, int max, int step) {
         return (int)random((double)min, max, step);
     }
 
@@ -164,7 +164,7 @@ public final class Core  {
      * @param max The upper limit
      * @return A random integer between the limits
      */
-    public static final int random(int min, int max) {
+    public static int random(int min, int max) {
         return random(min, max, 1);
     }
 
@@ -175,7 +175,7 @@ public final class Core  {
      * @param max The upper limit
      * @return A random integer in the specified range
      */
-    public static final int random(int max) {
+    public static int random(int max) {
         return random(0, max);
     }
 
@@ -186,7 +186,7 @@ public final class Core  {
      * @param max The upper limit
      * @return A random double in the specified range
      */
-    public static final double random(double min, double max) {
+    public static double random(double min, double max) {
         return Math.random() * (max - min) + min;
     }
 
@@ -196,7 +196,7 @@ public final class Core  {
      * @param max The upper limit
      * @return A random double in the specified range
      */
-    public static final double random(double max) {
+    public static double random(double max) {
         return Math.random() * max;
     }
 
@@ -209,7 +209,7 @@ public final class Core  {
      * 
      * @param speed The speed to set
      */
-    public static final void setSpeed(double speed) {
+    public static void setSpeed(double speed) {
         if(speed <= 0) pause();
         else Greenfoot.setSpeed(Math.min(100, (int)(speed * 100)));
     }
@@ -223,7 +223,7 @@ public final class Core  {
      * 
      * @param speed The speed to set
      */
-    public static final void setIntSpeed(int speed) {
+    public static void setIntSpeed(int speed) {
         setSpeed(speed / 100d);
     }
 
@@ -232,16 +232,16 @@ public final class Core  {
      * given framerate. The specified framerate can only be targeted, if the executing
      * machine cannot run the scenario at the given framerate it will throttle down
      * accordingly. Also the specified framerate may not be the exact framerate targeted
-     * exactly but rather a slightly higher one due to limitations of Greenfoots 100 step
+     * exactly but rather a slightly higher one due to limitations of Greenfoot's 100 step
      * speed system.
      * 
      * @param fps The target fps. Passing {@code 0} will pause the scenario instead
      */
     public static void setFps(int fps) {
 
-        long delay = 1000000000l / Math.max(fps, 1);
+        long delay = 1000000000L / Math.max(fps, 1);
         double speed = fps == 0 ? 0 :  delayToSpeed(delay) * 0.01;
-        if(isOnlineStateEmulated() ? !isOnline() : isOnline()) speed *= ONLINE_SPEED_FACTOR;
+        if(getRealSession() == Session.ONLINE) speed *= ONLINE_SPEED_FACTOR;
         Console.debug("Speed for {} fps is {}", fps, speed);
 
         try {
@@ -288,7 +288,7 @@ public final class Core  {
      * 
      * @return The current speed between 0.01 and 1
      */
-    public static final double getSpeed() {
+    public static double getSpeed() {
         return Simulation.getInstance().getSpeed() / 100d;
     }
 
@@ -297,9 +297,15 @@ public final class Core  {
      * 
      * @param map The map to show
      */
-    public static final void setMap(Map map) {
+    public static void setMap(Map map) {
         Console.mapDebug("World to set", map.world.getClass().getName());
+
+        Optional<Map> current = getMap();
+        if(getMap().isPresent() && getMap().get() == map) return;
+
+        current.ifPresent(Map::onClose);
         Greenfoot.setWorld(map.world);
+        map.onSet();
     }
 
     /**
@@ -307,8 +313,12 @@ public final class Core  {
      * 
      * @return The current map
      */
-    public static final Map getMap() {
-        return ((Map.SupportWorld)WorldHandler.getInstance().getWorld()).map;
+    public static Optional<Map> getMap() {
+        try {
+            return Optional.of(((Map.SupportWorld)WorldHandler.getInstance().getWorld()).map());
+        } catch(Exception e) {
+            return Optional.empty();
+        }
     }
 
     /**
@@ -316,7 +326,7 @@ public final class Core  {
      * 
      * @return The current world
      */
-    public static final World getWorld() {
+    public static World getWorld() {
         return WorldHandler.getInstance().getWorld();
     }
 
@@ -324,7 +334,7 @@ public final class Core  {
      * Starts / resumes the run execution. If the scenario is already running
      * this will have no effect.
      */
-    public static final void run() {
+    public static void run() {
         setRun(true);
     }
 
@@ -332,19 +342,19 @@ public final class Core  {
      * Pauses the run execution. If the scenario was already in a paused state
      * this will have no effect.
      */
-    public static final void pause() {
+    public static void pause() {
         setRun(false);
     }
 
     /**
-     * Sets weather the act loop should be executed. If the state is unchenged
+     * Sets weather the act loop should be executed. If the state is unchanged
      * this will have no effect.
      * 
      * @param flag Weather to run the act loop.
      */
-    public static final void setRun(boolean flag) {
+    public static void setRun(boolean flag) {
         Simulation.getInstance().setPaused(!flag);
-        propablyRunning = flag;
+        probablyRunning = flag;
         Console.mapDebug("Now running", flag);
     }
 
@@ -353,7 +363,7 @@ public final class Core  {
      * 
      * @return Weather the act loop is running
      */
-    public static final boolean isRunning() {
+    public static boolean isRunning() {
         try {
             Field paused = Simulation.class.getDeclaredField("paused");
             paused.setAccessible(true);
@@ -361,52 +371,45 @@ public final class Core  {
         } catch(Exception e) {
             Console.warn("Failed to load run state from framework");
             e.printStackTrace();
-            return propablyRunning;
+            return probablyRunning;
         }
     }
 
     /**
      * Indicates weather the current session is online or on the Greenfoot application.
-     * Offline the code runs plain java ansuring that any java functionallity will work.
+     * Offline the code runs plain java ensuring that any java functionality will work.
      * Online however the code gets converted to javascript which is not very reliable
      * and does not have all classes that java has. Therefore special handling when
-     * operating online max be helpful or neccecary.
-     * <p>The online state may be emulated using {@link #emulateOnlineState(Boolean)}
-     * and {@link #isOnlineStateEmulated()} checks weather the online state is currently
-     * being overridden. To get the 'real' online state you can use
-     * <pre>
-     * boolean realOnline = Core.isOnlineStateEmulated() ? !isOnline() : isOnline();
-     * </pre>
-     * but this should not be used in normal cases because it disallowes for any
-     * debugging and online testing.
+     * operating online max be helpful or necessary.
+     * <p>The online state may be emulated using {@link #emulateSessionState(Session)}
+     * and {@link #getRealSession()} returns the 'real' online state. This however should
+     * not be used in general, as it lacks debugging abilities.
      * 
      * @return The online state of this session
      */
-    public static final boolean isOnline() {
-        return onlineOverride != null ? onlineOverride : IS_ONLINE;
+    public static Session getSession() {
+        return sessionOverride != null ? sessionOverride : SESSION;
     }
 
     /**
      * Overrides the online state of this session. Passing {@code null} will cause the
      * actual state to be returned.
      * 
-     * @param emulatedOnlineState The online state to emulate
+     * @param emulatedSession The online state to emulate
      */
-    public static final void emulateOnlineState(Boolean emulatedOnlineState) {
-        onlineOverride = emulatedOnlineState;
+    public static void emulateSessionState(Session emulatedSession) {
+        sessionOverride = emulatedSession;
     }
 
     /**
-     * Returns weather the value returned by {@link #isOnline()} is incorrect due to
-     * it being emulated. A return of {@code false} does not neccecarily mean that the
-     * online state is not overridden, but that a potential override does not change
-     * the actual state.
-     * 
-     * @return Weather the online state returned by {@link #isOnline()} is incorrect due
-     *         to emulation
+     * Returns the 'real' state of this session, regardless of weather it is being emulated
+     * or not. This method should only be used for very essential functionality as it
+     * cannot be emulated for debugging purposes.
+     *
+     * @return The 'real' state of this session
      */
-    public static final boolean isOnlineStateEmulated() {
-        return onlineOverride != null && IS_ONLINE != onlineOverride;
+    public static Session getRealSession() {
+        return SESSION;
     }
 
 
@@ -414,19 +417,19 @@ public final class Core  {
     /**
      * Initializes some settings.
      */
-    static final void initialize() {
+    static void initialize() {
         if(initialized) return;
         initialized = true;
-        Console.Config.coloredOutput = false;
-        Console.Config.manualConsoleWidth = 60;
+        if(getSession() != Session.STANDALONE) {
+            Console.Config.coloredOutput = false;
+            Console.Config.manualConsoleWidth = 60;
+        }
+        else Console.Config.manualConsoleWidth = 120;
+
         try {
             System.setErr(Console.CONSOLE_ERROR_STREAM);
         } catch(Exception e) {
-            //System.out.println("Exception");
-            //e.printStackTrace();
-        } catch(Error e) {
-            //System.out.println("Error");
-            //e.printStackTrace();
+            Console.warn("Failed to set output stream");
         }
     }
 }
