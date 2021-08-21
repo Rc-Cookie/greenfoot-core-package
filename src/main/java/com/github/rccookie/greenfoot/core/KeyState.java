@@ -1,13 +1,12 @@
 package com.github.rccookie.greenfoot.core;
 
-import java.lang.reflect.Field;
-import java.util.Set;
-
 import com.github.rccookie.greenfoot.java.util.Optional;
-
 import greenfoot.Greenfoot;
 import greenfoot.core.WorldHandler;
 import greenfoot.gui.input.KeyboardManager;
+
+import java.lang.reflect.Field;
+import java.util.Set;
 
 /**
  * Represents the state of a keyboard key at a specific point in
@@ -68,7 +67,7 @@ public class KeyState {
      * @param keyName The name of the key
      * @return The key state of the key
      */
-    public static final KeyState of(String keyName) {
+    public static KeyState of(String keyName) {
         return new KeyState(keyName);
     }
 
@@ -81,7 +80,7 @@ public class KeyState {
      * 
      * @return The current key state of the last released key.
      */
-    public static final Optional<KeyState> latest() {
+    public static Optional<KeyState> latest() {
         String latestKey = Greenfoot.getKey();
         if(latestKey == null) return Optional.empty();
         return Optional.of(KeyState.of(latestKey));
@@ -94,7 +93,7 @@ public class KeyState {
      * @param pressed Weather the key should be emulated as pressed or not
      * @return The emulated key state
      */
-    public static final KeyState emulate(String keyName, boolean pressed) {
+    public static KeyState emulate(String keyName, boolean pressed) {
         return new KeyState(keyName, pressed, true);
     }
 
@@ -107,7 +106,7 @@ public class KeyState {
      * @param keyName The key to press down
      */
     @SuppressWarnings("unchecked")
-    public static final void emulatePress(String keyName) {
+    public static void emulatePress(String keyName) {
         String key = keyName.toLowerCase();
         try {
             Field f = KeyboardManager.class.getDeclaredField("keyDown");
@@ -119,8 +118,8 @@ public class KeyState {
             f = KeyboardManager.class.getDeclaredField("lastKeyTyped");
             f.trySetAccessible();
             f.set(WorldHandler.getInstance().getKeyboardManager(), key);
-        } catch(Exception e) {
-            e.printStackTrace();
+        } catch(Throwable t) {
+            t.printStackTrace();
         }
     }
 
@@ -131,7 +130,7 @@ public class KeyState {
      * @param keyName The key to release
      */
     @SuppressWarnings("unchecked")
-    public static final void emulateRelease(String keyName) {
+    public static void emulateRelease(String keyName) {
         String key = keyName.toLowerCase();
         try {
             Field f = KeyboardManager.class.getDeclaredField("keyDown");
@@ -140,8 +139,8 @@ public class KeyState {
             f = KeyboardManager.class.getDeclaredField("lastKeyTyped");
             f.trySetAccessible();
             f.set(WorldHandler.getInstance().getKeyboardManager(), key);
-        } catch(Exception e) {
-            e.printStackTrace();
+        } catch(Throwable t) {
+            t.printStackTrace();
         }
     }
 
@@ -151,7 +150,7 @@ public class KeyState {
      * @param keyName The key to type
      */
     @SuppressWarnings("unchecked")
-    public static final void emulateType(String keyName) {
+    public static void emulateType(String keyName) {
         String key = keyName.toLowerCase();
         try {
             Field f = KeyboardManager.class.getDeclaredField("keyLatched");
@@ -160,8 +159,8 @@ public class KeyState {
             f = KeyboardManager.class.getDeclaredField("lastKeyTyped");
             f.trySetAccessible();
             f.set(WorldHandler.getInstance().getKeyboardManager(), key);
-        } catch(Exception e) {
-            e.printStackTrace();
+        } catch(Throwable t) {
+            t.printStackTrace();
         }
     }
 }

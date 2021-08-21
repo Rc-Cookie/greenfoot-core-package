@@ -11,7 +11,7 @@ import java.awt.image.BufferedImage;
  * An image that is offline represented by a {@link BufferedImage}. It is
  * wrapping {@link GreenfootImage} but adds more convenience methods and
  * support for {@link Color} and {@link Font}.
- * 
+ *
  * @author RcCookie
  * @version 2.1
  */
@@ -106,7 +106,7 @@ public class Image implements Cloneable {
 
     /**
      * Creates a new transparent image of the given size.
-     * 
+     *
      * @param width The width of the image
      * @param height The height of the image
      */
@@ -115,10 +115,19 @@ public class Image implements Cloneable {
     }
 
     /**
+     * Creates a new transparent image of the given size.
+     *
+     * @param size The size of the image
+     */
+    public Image(Vector size) {
+        this((int)size.x(), ((int) size.y()));
+    }
+
+    /**
      * Creates a new image by trying to load from an image file with the
      * specified file name and path. Supported file types are jpg, png and
      * gif.
-     * 
+     *
      * @param filename The path and name of the image to load, for example
      *                 {@code "images/Car.png"}
      */
@@ -140,7 +149,7 @@ public class Image implements Cloneable {
      * will automatically be sized to exactly fot the string onto it. Offline
      * this will be a Calibri styled bond font, online a not-bold times roman.
      * The background of the image will be transparent.
-     * 
+     *
      * @param string The string to print
      * @param fontSize The font size of string
      * @param color The text color
@@ -152,7 +161,7 @@ public class Image implements Cloneable {
     /**
      * Creates a new image from the given {@link GreenfootImage}. It will be
      * wrapped rather than copied.
-     * 
+     *
      * @param gImage The greenfootImage to be wrapped.
      */
     private Image(GreenfootImage gImage) {
@@ -173,7 +182,7 @@ public class Image implements Cloneable {
 
     /**
      * Fills the image with the given color.
-     * 
+     *
      * @param color The color to fill with
      */
     public void fill(Color color) {
@@ -184,7 +193,7 @@ public class Image implements Cloneable {
      * Fills an oval with the top left corner of its bounding rectangle located
      * at the specified coordinates and with the given width and height, with
      * the given color.
-     * 
+     *
      * @param x The x coordinate of the top loft corner of the ovals bounding
      *          rectangle
      * @param y The y coordinate of the top loft corner of the ovals bounding
@@ -200,7 +209,7 @@ public class Image implements Cloneable {
     /**
      * Fills a rectangle with the coordinates describing its top left corner
      * with the given color on this image.
-     * 
+     *
      * @param x The top left corner's x coordinate
      * @param y The top left corner's y coordinate
      * @param width The width of the rectangle
@@ -284,7 +293,7 @@ public class Image implements Cloneable {
     }
 
     public void scale(double factor) {
-        scale((int)(factor * getWidth()), (int)(factor * getHeight()));
+        scale(getSize().scale(factor));
     }
 
     public Color getColor() {
@@ -305,6 +314,10 @@ public class Image implements Cloneable {
 
     public void setColorAt(int x, int y, Color color) {
         getGImage().superSetColorAt(x, y, Color.asGColor(color));
+    }
+
+    public void setColorAt(Vector location, Color color) {
+        setColorAt((int) (location.x() + 0.5), (int) (location.y() + 0.5), color);
     }
 
     public void setFont(Font font) {
@@ -383,6 +396,10 @@ public class Image implements Cloneable {
         return getGImage().superGetWidth();
     }
 
+    public Vector getSize() {
+        return Vector.of(getWidth(), getHeight());
+    }
+
     @Override
     public int hashCode() {
         return getGImage().superHashCode();
@@ -402,6 +419,10 @@ public class Image implements Cloneable {
 
     public void scale(int width, int height) {
         getGImage().superScale(width, height);
+    }
+
+    public void scale(Vector size) {
+        scale((int) (size.x() + 0.5), (int) (size.y() + 0.5));
     }
 
     public void setTransparency(int t) {
@@ -431,10 +452,18 @@ public class Image implements Cloneable {
         return image;
     }
 
+    public static Image block(Vector size, Color color) {
+        return block((int)size.x(), (int)size.y(), color);
+    }
+
     public static Image oval(int width, int height, Color color) {
         Image image = new Image(width, height);
         image.fillOval(0, 0, width, height, color);
         return image;
+    }
+
+    public static Image oval(Vector size, Color color) {
+        return oval((int)size.x(), (int)size.y(), color);
     }
 
     /**

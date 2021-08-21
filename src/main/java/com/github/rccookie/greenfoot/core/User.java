@@ -1,12 +1,15 @@
 package com.github.rccookie.greenfoot.core;
 
 import com.diogonunes.jcolor.Attribute;
-import com.github.rccookie.util.Console;
 import com.github.rccookie.greenfoot.java.util.Optional;
+import com.github.rccookie.util.Arguments;
+import com.github.rccookie.util.Console;
 import greenfoot.UserInfo;
 import greenfoot.util.GreenfootUtil;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -92,7 +95,7 @@ public class User {
      * @param userInfo The UserInfo that should back this user, must not be {@code null}
      */
     User(UserInfo userInfo) {
-        this.userInfo = Objects.requireNonNull(userInfo);
+        this.userInfo = Arguments.checkNull(userInfo);
         name = userInfo.getUserName();
         rank = userInfo.getRank();
         score = userInfo.getScore();
@@ -336,7 +339,7 @@ public class User {
      * @return An optional containing the current user's user object, or empty
      */
     public static Optional<User> current() {
-        if(Core.getRealSession() == Session.STANDALONE) {
+        if(!Core.getRealSession().supportsUserInfo()) {
             String name = getStandaloneUsername();
             return Optional.ofNullable(getStandaloneUsers().stream()
                     .filter(u -> u.getName().equals(name))
@@ -389,7 +392,7 @@ public class User {
      */
     @SuppressWarnings("unchecked")
     public static List<User> getNearby(int maxAmount) {
-        if(Core.getRealSession() == Session.STANDALONE) {
+        if(!Core.getRealSession().supportsUserInfo()) {
 
             // Ensure the list actually contains the user
             User user = current().get(); // Can't be null if session is standalone
@@ -428,7 +431,7 @@ public class User {
      */
     @SuppressWarnings("unchecked")
     public static List<User> getTop(int maxAmount) {
-        if(Core.getRealSession() == Session.STANDALONE)
+        if(!Core.getRealSession().supportsUserInfo())
             return getStandaloneUsers().stream().limit(maxAmount).collect(Collectors.toList());
         return ((List<UserInfo>)UserInfo.getTop(maxAmount)).stream().map(User::new).collect(Collectors.toList());
     }

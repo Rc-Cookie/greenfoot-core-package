@@ -6,7 +6,7 @@
 
   <groupId>com.github.rccookie</groupId>
   <artifactId>greenfoot-core</artifactId>
-  <version>current</version>
+  <version>5.0.2.1</version>
 
   <name>greenfoot-core</name>
 
@@ -19,7 +19,7 @@
     <dependency>
       <groupId>com.github.rccookie</groupId>
       <artifactId>geometry</artifactId>
-      <version>1.1.0.0</version>
+      <version>1.4.0.6</version>
     </dependency>
     <dependency>
       <groupId>com.github.rccookie</groupId>
@@ -29,12 +29,12 @@
     <dependency>
       <groupId>com.github.rccookie</groupId>
       <artifactId>util</artifactId>
-      <version>1.4.1.2</version>
+      <version>1.5.4.1</version>
     </dependency>
     <dependency>
       <groupId>com.github.rccookie</groupId>
       <artifactId>event</artifactId>
-      <version>1.2.0.0</version>
+      <version>1.2.1.1</version>
     </dependency>
   </dependencies>
 

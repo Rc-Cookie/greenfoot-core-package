@@ -87,7 +87,7 @@ public class Color implements Cloneable {
     /**
      * The color transparent. In rgb space the color black.
      */
-    public static final Color TRANSPARENT = new NamedColor(0, 0, 0, 0, "transparent");
+    public static final Color CLEAR = new NamedColor(0, 0, 0, 0, "clear");
 
 
 
@@ -115,6 +115,30 @@ public class Color implements Cloneable {
      */
     public Color(int red, int green, int blue) {
         this(red, green, blue, 255);
+    }
+
+    /**
+     * Creates a new color from values between {@code 0} and {@code 1}.
+     *
+     * @param red The red value for this color, from {@code 0} to {@code 1}
+     * @param green The green value for this color, from {@code 0} to {@code 1}
+     * @param blue The blue value for this color, from {@code 0} to {@code 1}
+     */
+    public Color(double red, double green, double blue) {
+        this(red, green, blue, 0);
+    }
+
+    /**
+     * Creates a new color from values between {@code 0} and {@code 1}.
+     *
+     * @param red The red value for this color, from {@code 0} to {@code 1}
+     * @param green The green value for this color, from {@code 0} to {@code 1}
+     * @param blue The blue value for this color, from {@code 0} to {@code 1}
+     * @param alpha The transparency value for this color, from {@code 0} to {@code 1},
+     *              where {@code 0} is transparent
+     */
+    public Color(double red, double green, double blue, double alpha) {
+        this((int) (255 * red + 0.5), (int) (255 * green + 0.5), (int) (255 * blue + 0.5), (int) (255 * alpha + 0.5));
     }
 
     /**

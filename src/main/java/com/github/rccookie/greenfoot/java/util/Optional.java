@@ -1,5 +1,8 @@
 package com.github.rccookie.greenfoot.java.util;
 
+import com.github.rccookie.util.Arguments;
+import com.github.rccookie.util.NullArgumentException;
+
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -66,10 +69,10 @@ public class Optional<T> {
      * Constructs an instance with the described value.
      *
      * @param value the non-{@code null} value to describe
-     * @throws NullPointerException if value is {@code null}
+     * @throws NullArgumentException if value is {@code null}
      */
     private Optional(T value) {
-        this.value = Objects.requireNonNull(value);
+        this.value = Arguments.checkNull(value);
     }
 
     /**
@@ -150,7 +153,7 @@ public class Optional<T> {
      * @throws NullPointerException if the predicate is {@code null}
      */
     public Optional<T> filter(Predicate<? super T> predicate) {
-        Objects.requireNonNull(predicate);
+        Arguments.checkNull(predicate);
         return predicate.test(value) ? this : empty();
     }
 
@@ -188,7 +191,7 @@ public class Optional<T> {
      * @throws NullPointerException if the mapping function is {@code null}
      */
     public <U> Optional<U> map(Function<? super T, ? extends U> mapper) {
-        Objects.requireNonNull(mapper);
+        Arguments.checkNull(mapper);
         return Optional.ofNullable(mapper.apply(value));
     }
 
@@ -212,7 +215,7 @@ public class Optional<T> {
      *         returns a {@code null} result
      */
     public <U> Optional<U> flatMap(Function<? super T, ? extends Optional<? extends U>> mapper) {
-        Objects.requireNonNull(mapper);
+        Arguments.checkNull(mapper);
         @SuppressWarnings("unchecked")
         Optional<U> r = (Optional<U>) mapper.apply(value);
         return Objects.requireNonNull(r);
@@ -232,7 +235,7 @@ public class Optional<T> {
      * @since 9
      */
     public Optional<T> or(Supplier<? extends Optional<? extends T>> supplier) {
-        Objects.requireNonNull(supplier);
+        Arguments.checkNull(supplier);
         return this;
     }
 
@@ -256,14 +259,23 @@ public class Optional<T> {
     }
 
     /**
-     * If a value is present, returns the value, otherwise returns
+     * If a value is present, it returns the value, otherwise it returns
      * {@code other}.
      *
-     * @param other the value to be returned, if no value is present.
+     * @param other the value to be returned if no value is present.
      *        May be {@code null}.
      * @return the value, if present, otherwise {@code other}
      */
     public T orElse(T other) {
+        return value;
+    }
+
+    /**
+     * If a value is present, that value will be returned, otherwise {@code null}.
+     *
+     * @return The value or {@code null}
+     */
+    public T orNull() {
         return value;
     }
 
@@ -310,6 +322,7 @@ public class Optional<T> {
      * @throws NullPointerException if no value is present and the exception
      *          supplying function is {@code null}
      */
+    @SuppressWarnings("RedundantThrows")
     public <X extends Throwable> T orElseThrow(Supplier<? extends X> exceptionSupplier) throws X {
         return value;
     }
@@ -413,6 +426,20 @@ public class Optional<T> {
         return value == null ? empty() : of(value);
     }
 
+    /**
+     * Returns an {@code Optional} describing the given optional's value, if
+     * a value is present, otherwise it returns an empty {@code Optional}.
+     *
+     * @param optional the {@link java.util.Optional} to describe
+     * @param <T> the type of the value
+     * @return an {@code Optional} with a present value if the specified value
+     *         is non-{@code null}, otherwise an empty {@code Optional}
+     */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    public static <T> Optional<T> ofOptional(java.util.Optional<T> optional) {
+        return of(optional.orElse(null));
+    }
+
 
 
     private static final class EmptyOptional<T> extends Optional<T> {
@@ -424,12 +451,12 @@ public class Optional<T> {
         @Override
         public Optional<T> filter(Predicate<? super T> predicate) {
             return empty();
-        };
+        }
 
         @Override
         public <U> Optional<U> flatMap(Function<? super T,? extends Optional<? extends U>> mapper) {
             return empty();
-        };
+        }
 
         @Override
         public T get() {
@@ -470,12 +497,17 @@ public class Optional<T> {
         @Override
         @SuppressWarnings("unchecked")
         public Optional<T> or(Supplier<? extends Optional<? extends T>> supplier) {
-            return Objects.requireNonNull((Optional<T>)supplier.get());
+            return Arguments.checkNull((Optional<T>)supplier.get());
         }
 
         @Override
         public T orElse(T other) {
             return other;
+        }
+
+        @Override
+        public T orNull() {
+            return null;
         }
 
         @Override

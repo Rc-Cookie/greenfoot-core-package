@@ -59,7 +59,7 @@ public class MouseState {
     public final Vector location;
 
     /**
-     * Weather this mouse state is emulated and not neccecary the case in 'reality'.
+     * Weather this mouse state is emulated and not necessary the case in 'reality'.
      */
     public final boolean emulated;
 
@@ -110,7 +110,7 @@ public class MouseState {
 
 
     /**
-     * Emulates the given MouseInfo event. The returned mouse state will be merked as
+     * Emulates the given MouseInfo event. The returned mouse state will be marked as
      * emulated.
      * 
      * @param mouseInfo The MouseInfo to base this mouse state on
@@ -157,12 +157,26 @@ public class MouseState {
 
 
     /**
+     * Returns {@code true} in the frame in which the mouse has been pressed down.
+     */
+    public static boolean pressed() {
+        return pressed(null);
+    }
+
+    /**
      * Returns {@code true} in the frame in which the mouse has been pressed down
      * onto the specified object. The object may be an Actor, a World or {@code null}
      * which will trigger on any press.
      */
     public static boolean pressed(Object onto) {
         return Greenfoot.mousePressed(onto);
+    }
+
+    /**
+     * Returns {@code true} in the frame in which the mouse has been released.
+     */
+    public static boolean released() {
+        return released(null);
     }
 
     /**

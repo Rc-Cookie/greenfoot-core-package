@@ -1,7 +1,5 @@
 package com.github.rccookie.greenfoot.core;
 
-import com.github.rccookie.util.Console;
-
 /**
  * Represents the type of the current session.
  */
@@ -30,7 +28,16 @@ public enum Session {
         return name.charAt(0) + name.substring(1).toLowerCase() + " session";
     }
 
-    public static void main(String[] args) {
-        Console.info(Session.STANDALONE);
+    public boolean isJava() {
+        return this != ONLINE;
+    }
+
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    public boolean supportsUserInfo() {
+        return this != STANDALONE;
+    }
+
+    public boolean supportsColoredOutput() {
+        return this == STANDALONE;
     }
 }

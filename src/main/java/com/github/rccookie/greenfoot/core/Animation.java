@@ -1,13 +1,21 @@
 package com.github.rccookie.greenfoot.core;
 
 import com.github.rccookie.geometry.Vector;
+import com.github.rccookie.util.Arguments;
 import com.github.rccookie.util.Console;
 
-import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-public class Animation implements Cloneable {
+public class Animation extends Component {
+
+    static {
+        registerPrefab(Animation.class, Animation::new);
+    }
+
+
+    // -- Relevant for animation setup --
+
 
     private static final Consumer<GameObject> EMPTY_ON_END = o -> { };
     private static final Predicate<GameObject> EMPTY_PREDICATE = o -> true;
@@ -25,12 +33,36 @@ public class Animation implements Cloneable {
     private Predicate<GameObject> predicate = EMPTY_PREDICATE;
 
 
+    // -- Relevant while animation is running --
 
-    public Animation() { }
 
-    @Override
-    public Animation clone() {
-        Animation clone = new Animation();
+    Vector runningMovement;
+    double runningRotation;
+
+    boolean runningIsScaled;
+    int runningWidthChange, runningHeightChange;
+    int runningInitialWidth, runningInitialHeight;
+
+    Double runningTransparencyChange;
+
+    double runningCurrentWidth;
+    double runningCurrentHeight;
+    double RunningCurrentTransparency;
+
+    double runningTotal = 0;
+
+
+
+
+    // -- Relevant for animation setup --
+
+
+    public Animation(GameObject gameObject) {
+        super(gameObject);
+    }
+
+    public Animation copy(GameObject gameObject) {
+        Animation clone = new Animation(gameObject);
         clone.location = location;
         clone.movement = movement;
         clone.angle = angle;
@@ -48,13 +80,13 @@ public class Animation implements Cloneable {
 
     public Animation setLocation(Vector location) {
         if(this.location != null || movement != null) throw new IllegalStateException();
-        this.location = Objects.requireNonNull(location);
+        this.location = Arguments.checkNull(location);
         return this;
     }
 
     public Animation setMovement(Vector movement) {
         if(location != null || this.movement != null) throw new IllegalStateException();
-        this.movement = Objects.requireNonNull(movement);
+        this.movement = Arguments.checkNull(movement);
         return this;
     }
 
@@ -102,81 +134,79 @@ public class Animation implements Cloneable {
     }
 
     public Animation addOnEnd(Consumer<GameObject> action) {
-        onEnd = onEnd.andThen(Objects.requireNonNull(action));
+        onEnd = onEnd.andThen(Arguments.checkNull(action));
         return this;
     }
 
     public Animation addPredicate(Predicate<GameObject> requirement) {
-        predicate = predicate.and(Objects.requireNonNull(requirement));
+        predicate = predicate.and(Arguments.checkNull(requirement));
         return this;
     }
 
 
+    // -- Relevant while animation is running --
 
-    Runnable build(GameObject object) {
-        Vector movement = location != null ? Vector.between(object.getLocation(), location) : (this.movement != null ? this.movement : Vector.of());
-        double rotation = angle != null ? angle - object.getAngle() : (this.rotation != null ? this.rotation : 0);
 
-        final boolean isScaled = object.getImage() != null && (width != null || scaleX != null);
-        int widthChange = isScaled ? (width != null ? width - object.getWidth() : (int)(object.getWidth() * (scaleX - 1))) : 0;
-        int heightChange = isScaled ? (height != null ? height - object.getHeight() : (int)(object.getHeight() * (scaleY - 1))) : 0;
-        int initialWidth = isScaled ? object.getWidth() : 0, initialHeight = isScaled ? object.getHeight() : 0;
+    @Override
+    public void start() {
+        runningMovement = location != null ? Vector.between(gameObject.location(), location) : (Animation.this.movement != null ? Animation.this.movement : Vector.of());
+        runningRotation = angle != null ? angle - gameObject.rotation() : (Animation.this.rotation != null ? Animation.this.rotation : 0);
 
-        Console.mapDebug("Starting animation {} with", object.getImage(), hashCode());
-        if(isScaled && heightChange != 4 && heightChange != -4)
+        runningIsScaled = gameObject.getImage() != null && (width != null || scaleX != null);
+        runningWidthChange = runningIsScaled ? (width != null ? width - gameObject.getWidth() : (int)(gameObject.getWidth() * (scaleX - 1))) : 0;
+        runningHeightChange = runningIsScaled ? (height != null ? height - gameObject.getHeight() : (int)(gameObject.getHeight() * (scaleY - 1))) : 0;
+        runningInitialWidth = runningIsScaled ? gameObject.getWidth() : 0;
+        runningInitialHeight = runningIsScaled ? gameObject.getHeight() : 0;
+
+        Console.mapDebug("Starting animation {} with", gameObject.getImage(), hashCode());
+        if(runningIsScaled && runningHeightChange != 4 && runningHeightChange != -4)
             Console.line("error");
-            //throw new RuntimeException("Width change: " + widthChange + ", height change: " + heightChange + "(x scale: " + scaleX + ", y scale: " + scaleY + ", initial x: " + initialWidth + ", initial y: " + initialHeight + ")");
+        //throw new RuntimeException("Width change: " + widthChange + ", height change: " + heightChange + "(x scale: " + scaleX + ", y scale: " + scaleY + ", initial x: " + initialWidth + ", initial y: " + initialHeight + ")");
 
-        Double transparencyChange = (transparency != null && object.getImage() != null) ? 255 * transparency - object.getImage().getTransparency() : null;
-        double duration = this.duration;
+        runningTransparencyChange = (transparency != null && gameObject.getImage() != null) ? 255 * transparency - gameObject.getImage().getTransparency() : null;
 
-        Consumer<GameObject> onEnd = this.onEnd;
-        Predicate<GameObject> predicate = this.predicate;
 
-        return new Runnable() {
+        runningCurrentWidth = runningIsScaled ? gameObject.getWidth() : 0;
+        runningCurrentHeight = runningIsScaled ? gameObject.getHeight() : 0;
+        RunningCurrentTransparency = runningTransparencyChange != null ? gameObject.getImage().getTransparency() : 0;
+    }
 
-            double total = 0;
 
-            double currentWidth = isScaled ? object.getWidth() : 0;
-            double currentHeight = isScaled ? object.getHeight() : 0;
-            double currentTransparency = transparencyChange != null ? object.getImage().getTransparency() : 0;
 
-            @Override
-            public void run() {
-                double newTotal = duration == 0 ? 1 : Math.min(total + object.time.deltaTime() / duration, 1);
-                double delta = newTotal - total;
-                total = newTotal;
+    @Override
+    public void update() {
+        double newTotal = duration == 0 ? 1 : Math.min(runningTotal + Time.deltaTime() / duration, 1);
+        double delta = newTotal - runningTotal;
+        runningTotal = newTotal;
 
-                object.move(movement.scaled(delta));
-                object.turn(rotation * delta);
+        gameObject.location().add(runningMovement.scaled(delta));
+        gameObject.turn(runningRotation * delta);
 
-                if(isScaled) {
-                    double newWidth = currentWidth + widthChange * delta;
-                    double newHeight = currentHeight + heightChange * delta;
+        if(runningIsScaled) {
+            double newWidth = runningCurrentWidth + runningWidthChange * delta;
+            double newHeight = runningCurrentHeight + runningHeightChange * delta;
 
-                    if(total == 1)
-                        object.getImage().scale(initialWidth + widthChange, initialHeight + heightChange);
-                    else if((int)newWidth != (int)currentWidth || (int)newHeight != currentHeight)
-                        object.getImage().scale((int) (newWidth + 0.49), (int) (newHeight + 0.49));
+            if(runningTotal == 1)
+                gameObject.getImage().scale(runningInitialWidth + runningWidthChange, runningInitialHeight + runningHeightChange);
+            else if((int)newWidth != (int) runningCurrentWidth || (int)newHeight != runningCurrentHeight)
+                gameObject.getImage().scale((int) (newWidth + 0.49), (int) (newHeight + 0.49));
 
-                    currentWidth = newWidth;
-                    currentHeight = newHeight;
-                    Console.map("Current dimensions", currentWidth, currentHeight);
-                }
+            runningCurrentWidth = newWidth;
+            runningCurrentHeight = newHeight;
+            Console.map("Current dimensions", runningCurrentWidth, runningCurrentHeight);
+        }
 
-                if(transparencyChange != null) {
-                    currentTransparency += transparencyChange * delta;
-                    if(currentTransparency < 0) currentTransparency = 0;
-                    else if(currentTransparency > 255) currentTransparency = 255;
-                    object.getImage().setTransparency((int)(currentTransparency + 0.49)); // 0.5 may round up to 256
-                }
+        if(runningTransparencyChange != null) {
+            RunningCurrentTransparency += runningTransparencyChange * delta;
+            if(RunningCurrentTransparency < 0) RunningCurrentTransparency = 0;
+            else if(RunningCurrentTransparency > 255) RunningCurrentTransparency = 255;
+            gameObject.getImage().setTransparency((int)(RunningCurrentTransparency + 0.49)); // 0.5 may round up to 256
+        }
 
-                if(total == 1 || !predicate.test(object)) {
-                    Console.mapDebug("Ending animation {} with", object.getImage(), Animation.this.hashCode());
-                    object.removeOnUpdate(this);
-                    onEnd.accept(object);
-                }
-            }
-        };
+        if(runningTotal == 1 || !predicate.test(gameObject)) {
+            Console.mapDebug("Ending animation {} with", gameObject.getImage(), Animation.this.hashCode());
+            setEnabled(false);
+            onEnd.accept(gameObject);
+        }
     }
 }

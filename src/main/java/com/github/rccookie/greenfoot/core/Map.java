@@ -1,13 +1,15 @@
 package com.github.rccookie.greenfoot.core;
 
-import com.github.rccookie.event.Time;
 import com.github.rccookie.geometry.Vector;
-import com.github.rccookie.greenfoot.core.GameObject.SupportActor;
 import com.github.rccookie.greenfoot.java.util.Optional;
+import com.github.rccookie.util.Arguments;
+import com.github.rccookie.util.Console;
 import greenfoot.Actor;
 import greenfoot.GreenfootImage;
 import greenfoot.World;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.Constructor;
 import java.util.*;
 import java.util.function.Consumer;
@@ -26,11 +28,11 @@ import java.util.stream.Stream;
  * any abstract methods. This is because the purpose of CoreWorld is
  * to be extended from with a custom implementation while being
  * able to use its functionality.
- * 
+ *
  * @author RcCookie
  * @version 1.0
  */
-public abstract class Map extends ComplexUpdateable {
+public abstract class Map extends GameObject {
 
     static {
         Core.initialize();
@@ -38,12 +40,6 @@ public abstract class Map extends ComplexUpdateable {
 
     public static final int DEFAULT_WIDTH = 600;
     public static final int DEFAULT_HEIGHT = 400;
-
-    /**
-     * An instance of {@link Time} that is automatically being
-     * updated.
-     */
-    protected final Time time = new NoExternalUpdateTime();
 
 
 
@@ -74,6 +70,11 @@ public abstract class Map extends ComplexUpdateable {
      */
     private PaintOrder paintOrder = null;
 
+    /**
+     * All objects on this map.
+     */
+    final Set<GameObject> objects = new HashSet<>();
+
 
 
     /**
@@ -87,7 +88,7 @@ public abstract class Map extends ComplexUpdateable {
     /**
      * Constructs a new map with the specified dimensions,
      * a cell size of {@code 1} without bounds.
-     * 
+     *
      * @param width The width of the map, in pixels
      * @param height The height of the map, in pixels
      */
@@ -97,8 +98,18 @@ public abstract class Map extends ComplexUpdateable {
 
     /**
      * Constructs a new map with the specified dimensions,
+     * a cell size of 1 and no bounds.
+     *
+     * @param size The size of the map in pixels
+     */
+    public Map(Vector size) {
+        this((int)size.x(), (int) size.y());
+    }
+
+    /**
+     * Constructs a new map with the specified dimensions,
      * a cell size of {@code 1}.
-     * 
+     *
      * @param width The width of the map, in pixels
      * @param height The height of the map, in pixels
      * @param bounded Weather this map should be bounded
@@ -110,7 +121,7 @@ public abstract class Map extends ComplexUpdateable {
     /**
      * Constructs a new map with the specified dimensions
      * which is bounded and has the given cell size.
-     * 
+     *
      * @param width The width of the map, in cells
      * @param height The height of the map, in cells
      * @param cellSize The size of a cell, in pixels
@@ -121,7 +132,7 @@ public abstract class Map extends ComplexUpdateable {
 
     /**
      * Constructs a new map with the specified dimensions.
-     * 
+     *
      * @param width The width of the map, in cells
      * @param height The height of the map, in cells
      * @param cellSize The size of a cell, in pixels
@@ -134,29 +145,35 @@ public abstract class Map extends ComplexUpdateable {
         this.bounded = bounded;
         // Order matters!
         world = new SupportWorld();
-        setBackground(Image.block(width, height, Color.WHITE));
+        setImage(Image.block(width * cellSize, height * cellSize, Color.WHITE));
+        removeComponent(DefaultCollider.class);
+        addComponent(MapCollider.class);
     }
 
 
 
     /**
      * Adds the given object into this map at the specified location.
-     * 
+     *
      * @param object The object to add
      * @param location The location to set the object to
      */
     public void add(GameObject object, Vector location) {
-        if(object.getMap().filter(m -> m == this).isPresent()) return;
+        if(object.tryGetMap().filter(m -> m == this).isPresent()) return;
         world.addObject(object.actor, (int)(location.x() + 0.5), (int)(location.y() + 0.5));
         object.map = this;
-        object.setLocation(location);
+        objects.add(object);
+        Console.mapDebug("Added object", object);
+        Console.printStackTrace("debug");
+        object.location().set(location);
+        object.updateActor(); // TODO: Necessary?
         updatePaintOrder();
         object.addedToMap(this);
     }
 
     /**
      * Adds the given object into this map at the specified coordinates.
-     * 
+     *
      * @param object The object to add
      * @param x The x coordinate to add the object
      * @param y The y coordinate to add the object
@@ -168,7 +185,7 @@ public abstract class Map extends ComplexUpdateable {
     /**
      * Adds the given object at the specified relative coordinates.
      * {@code x = 0} means left, {@code x = 1} means right.
-     * 
+     *
      * @param object The object to add
      * @param relativeX The relative x coordinate
      * @param relativeY The relative y coordinate
@@ -181,7 +198,7 @@ public abstract class Map extends ComplexUpdateable {
      * Adds the given object at the specified relative coordinates with
      * the given offset in cells.
      * {@code x = 0} means left, {@code x = 1} means right.
-     * 
+     *
      * @param object The object to add
      * @param relativeX The relative x coordinate
      * @param relativeY The relative y coordinate
@@ -197,17 +214,15 @@ public abstract class Map extends ComplexUpdateable {
 
     /**
      * Removes the given object from this map.
-     * 
+     *
      * @param object The object to remove
      */
     public void remove(GameObject object) {
-        Objects.requireNonNull(object);
-        world.removeObject(object.actor);
-        object.map = null;
+        Arguments.checkNull(object).remove();
     }
 
     public void removeAll(Collection<GameObject> objects) {
-        for(GameObject object : objects) remove(object);
+        for(GameObject object : objects) object.remove();
     }
 
 
@@ -248,10 +263,10 @@ public abstract class Map extends ComplexUpdateable {
 
     private void updatePaintOrder() {
         if(paintOrder == null) return; // Objects are not sorted
-        List<GameObject> oldOrder = allStream().collect(Collectors.toList());
+        List<GameObject> oldOrder = stream().collect(Collectors.toList());
         List<GameObject> newOrderReversed = paintOrder.getInReverseOrder(oldOrder);
         for(GameObject o : newOrderReversed) {
-            Vector location = o.getLocation();
+            Vector location = o.location();
             world.removeObject(o.actor);
             world.addObject(o.actor, (int)(location.x() + 0.5), (int)(location.y() + 0.5));
         }
@@ -261,32 +276,46 @@ public abstract class Map extends ComplexUpdateable {
 
     /**
      * Finds an object that meets the given requirement.
-     * 
+     *
      * @param requirement The requirement the object has to fulfill to be
      *                    returned
      * @return An optional containing an object that fulfills the requirement,
      *         or an empty optional
      */
-    public Optional<GameObject> find(Predicate<GameObject> requirement) {
+    public Optional<GameObject> tryFind(Predicate<GameObject> requirement) {
+        return tryFind(GameObject.class, requirement);
+    }
+
+    /**
+     * Finds an object that meets the given requirement.
+     *
+     * @param requirement The requirement the object has to fulfill to be
+     *                    returned
+     * @return An object that fulfills the requirement, or {@code null}
+     */
+    public GameObject find(Predicate<GameObject> requirement) {
         return find(GameObject.class, requirement);
     }
 
     /**
-     * Returns an optional object of the specified class from this map.
-     * 
+     * Returns an object of the specified class from this map.
+     *
      * @param <A> The type of object
      * @param cls The class of object
-     * @return An optional containing an object of the specified class, if
-     *         there is any in the world
+     * @return An object of the specified class, or {@code null}
      */
-    public <A> Optional<A> find(Class<A> cls) {
+    public <A> Optional<A> tryFind(Class<A> cls) {
         return Optional.ofNullable(findAll(cls).stream().findAny().orElse(null));
+    }
+
+    public <A> A find(Class<A> cls) {
+        return stream(cls).findAny().orElse(null);
     }
 
     /**
      * Returns an optional object of the specified class with the given
      * id from this map.
-     * 
+     *
      * @param <A> The type of object
      * @param cls The class of object
      * @param id The id of the object, as specified using
@@ -294,37 +323,73 @@ public abstract class Map extends ComplexUpdateable {
      * @return An optional containing an object of the specified class and
      *         with the specified id, if there are any on the map
      */
-    public <A> Optional<A> find(Class<A> cls, String id) {
+    public <A> Optional<A> tryFind(Class<A> cls, String id) {
+        return Optional.ofNullable(find(cls, id));
+    }
+
+    /**
+     * Returns an object of the specified class with the given id from this map.
+     *
+     * @param <A> The type of object
+     * @param cls The class of object
+     * @param id The id of the object, as specified using
+     *           {@link GameObject#setId(String)}
+     * @return An object of the specified class and with the specified id, or {@code null}
+     */
+    public <A> A find(Class<A> cls, String id) {
         return find(cls, a -> a instanceof GameObject && Objects.equals(id, ((GameObject)a).getId()));
     }
 
     /**
-     * Returns an optional Object of the given class that meets the specified
+     * Returns an optional object of the given class that meets the specified
      * requirement and is on this map.
-     * 
+     *
      * @param <A> The type of object
      * @param cls The class of object
      * @param requirement The requirement that the object returned must meet
      * @return An optional containing an object that meets the requirements if
      *         there is any on the map
      */
-    public <A> Optional<A> find(Class<A> cls, Predicate<A> requirement) {
-        return Optional.ofNullable(allStream(cls).filter(requirement).findAny().orElse(null));
+    public <A> Optional<A> tryFind(Class<A> cls, Predicate<A> requirement) {
+        return Optional.ofNullable(find(cls, requirement));
     }
 
     /**
-     * Returns a object from this map with the specified id.
-     * 
+     * Returns an object of the given class that meets the specified
+     * requirement and is on this map.
+     *
+     * @param <A> The type of object
+     * @param cls The class of object
+     * @param requirement The requirement that the object returned must meet
+     * @return An object that meets the requirements, or {@code null}
+     */
+    public <A> A find(Class<A> cls, Predicate<A> requirement) {
+        return stream(cls).filter(requirement).findAny().orElse(null);
+    }
+
+    /**
+     * Returns an object from this map with the specified id.
+     *
      * @param id The id of the object to find
      * @return An object with the id, or an empty optional
      */
-    public Optional<GameObject> find(String id) {
+    public Optional<GameObject> tryFind(String id) {
+        return Optional.ofNullable(find(id));
+    }
+
+    /**
+     * Returns an object from this map with the specified id.
+     *
+     * @param id The id of the object to find
+     * @return An object with the id, or {@code null}
+     */
+    public GameObject find(String id) {
         return find(o -> Objects.equals(id, o.getId()));
     }
 
     /**
      * Returns all objects from this map that meet the given requirement.
-     * 
+     *
      * @param requirement The requirement an object must meet to be contained
      *                    in the returned list
      * @return A list of all objects on this map that meet the requirement
@@ -335,7 +400,7 @@ public abstract class Map extends ComplexUpdateable {
 
     /**
      * Returns all object of this map with the given id.
-     * 
+     *
      * @param <A> The type of object to find
      * @param cls The class of object to find
      * @param id The id of the object to find
@@ -348,44 +413,44 @@ public abstract class Map extends ComplexUpdateable {
     /**
      * Returns all objects of the specified class from this map that meet
      * the given requirement.
-     * 
+     *
      * @param <A> The type of object to find
      * @param requirement The requirement an object must meet to be contained
      *                    in the returned list
      * @return A list of all objects on this map that meet the requirement
      */
     public <A> Set<A> findAll(Class<A> cls, Predicate<A> requirement) {
-        return allStream(cls).filter(requirement).collect(Collectors.toSet());
+        return stream(cls).filter(requirement).collect(Collectors.toSet());
     }
 
 
 
     /**
      * Returns weather this map contains an object that meets the given requirement.
-     * 
+     *
      * @param requirement The requirement the object has to meet
      * @return {@code true} if there is at least one object on the map that meets
      *         the requirement
      */
     public boolean contains(Predicate<GameObject> requirement) {
-        return find(requirement).isPresent();
+        return tryFind(requirement).isPresent();
     }
 
     /**
      * Returns weather this map contains an object of the given class.
-     * 
+     *
      * @param <A> The type of object to check for
      * @param cls The class of object to check for
      * @return {@code true} if there is at least one object on the map of that class
      */
     public <A> boolean contains(Class<A> cls) {
-        return find(cls).isPresent();
+        return tryFind(cls).isPresent();
     }
 
     /**
-     * Returns weather this map contains a object of the given class that has
+     * Returns weather this map contains an object of the given class that has
      * the given id.
-     * 
+     *
      * @param <A> The type of object to check for
      * @param cls The class of object to check for
      * @param id The id to check for
@@ -393,13 +458,13 @@ public abstract class Map extends ComplexUpdateable {
      *         class with the specified id
      */
     public <A> boolean contains(Class<A> cls, String id) {
-        return find(cls, id).isPresent();
+        return tryFind(cls, id).isPresent();
     }
 
     /**
      * Returns weather this map contains an object of the given class that meets the
      * specified requirement.
-     * 
+     *
      * @param <A> The type of object to check for
      * @param cls The class of object to check for
      * @param requirement The requirement that the object must meet
@@ -407,12 +472,12 @@ public abstract class Map extends ComplexUpdateable {
      *         class that meets the requirement
      */
     public <A> boolean contains(Class<A> cls, Predicate<A> requirement) {
-        return find(cls, requirement).isPresent();
+        return tryFind(cls, requirement).isPresent();
     }
 
     /**
-     * Returns weather this map contains a object with the given id.
-     * 
+     * Returns weather this map contains an object with the given id.
+     *
      * @param id The id to check for
      * @return {@code true} if this map contains at least one object with the
      * specified id
@@ -424,22 +489,8 @@ public abstract class Map extends ComplexUpdateable {
 
 
     /**
-     * Sets the time scale for this map and all its object. You can always
-     * modify the time scale of the map exclusively by modifying the
-     * {@link Time#timeScale} field of {@link #time}.
-     * 
-     * @param scale The new time scale
-     */
-    public void setTimeScale(double scale) {
-        time.timeScale = scale;
-        for(GameObject a : findAll(GameObject.class)) a.time.timeScale = scale;
-    }
-
-
-
-    /**
      * Returns weather this world is bounded.
-     * 
+     *
      * @return {@code true} if this world is bounded
      */
     public boolean isBounded() {
@@ -450,47 +501,119 @@ public abstract class Map extends ComplexUpdateable {
 
     /**
      * Returns all objects from this map and itself in the order they should be updated in.
-     * 
+     *
      * @return All objects that need to be updated in proper update order
      */
-    private List<? extends ComplexUpdateable> getInUpdateOrder() {
-        return Stream.concat(Stream.of(this), allStream().sequential()).collect(Collectors.toList());
+    private List<? extends GameObject> getInUpdateOrder() {
+        return Stream.concat(Stream.of(this), stream()).collect(Collectors.toList());
     }
 
     /**
      * Called whenever {@link World#act()} is called on the underlying map.
      */
     private void onAct() {
-        List<? extends ComplexUpdateable> updateTargets = getInUpdateOrder();
-        for(ComplexUpdateable updateTarget : updateTargets) updateTarget.earlyUpdate();
-        for(ComplexUpdateable updateTarget : updateTargets) updateTarget.internalUpdate();
-        for(ComplexUpdateable updateTarget : updateTargets) updateTarget.update();
-        for(ComplexUpdateable updateTarget : updateTargets) updateTarget.lateInternalUpdate();
-        for(ComplexUpdateable updateTarget : updateTargets) updateTarget.physicsUpdate();
-        for(ComplexUpdateable updateTarget : updateTargets) updateTarget.lateUpdate();
+        RuntimeException e = null;
+
+        if(isActiveMap()) e = Core.earlyGlobalUpdate();
+
+        List<? extends GameObject> updateTargets = getInUpdateOrder();
+        for(GameObject updateTarget : updateTargets) e = runEarlyInternalUpdate(updateTarget, e);
+        for(GameObject updateTarget : updateTargets) e = runEarlyUpdate(updateTarget, e);
+        for(GameObject updateTarget : updateTargets) e = runInternalUpdate(updateTarget, e);
+        for(GameObject updateTarget : updateTargets) e = runUpdate(updateTarget, e);
+        for(GameObject updateTarget : updateTargets) e = runLateInternalUpdate(updateTarget, e);
+        for(GameObject updateTarget : updateTargets) e = runLateUpdate(updateTarget, e);
+        for(GameObject updateTarget : updateTargets) e = runVeryLateInternalUpdate(updateTarget, e);
+        for(GameObject updateTarget : updateTargets) updateTarget.ensureTransformUpToDate();
+
+        if(isActiveMap()) e = Core.lateGlobalUpdate(e);
+
+        if(e != null) throw e;
     }
 
-    @Override
-    void internalUpdate() {
-        ((NoExternalUpdateTime)time).actualUpdate();
+    private RuntimeException runEarlyInternalUpdate(GameObject object, RuntimeException exception) {
+        try {
+            object.earlyInternalUpdate();
+        } catch(RuntimeException e) {
+            if(exception == null) return e;
+            else exception.addSuppressed(e);
+        }
+        return exception;
     }
 
-    @Override
-    void lateInternalUpdate() {
-        
+    private RuntimeException runEarlyUpdate(GameObject object, RuntimeException exception) {
+        if(object.getMap() != this) return exception;
+        try {
+            object.earlyUpdate();
+        } catch(RuntimeException e) {
+            if(exception == null) return e;
+            else exception.addSuppressed(e);
+        }
+        return exception;
     }
 
-    @Override
-    protected void earlyUpdate() { }
+    private RuntimeException runInternalUpdate(GameObject object, RuntimeException exception) {
+        if(object.getMap() != this) return exception;
+        try {
+            object.internalUpdate();
+        } catch(RuntimeException e) {
+            if(exception == null) return e;
+            else exception.addSuppressed(e);
+        }
+        return exception;
+    }
 
-    @Override
-    public void update() { }
+    private RuntimeException runUpdate(GameObject object, RuntimeException exception) {
+        if(object.getMap() != this) return exception;
+        try {
+            object.update();
+        } catch(RuntimeException e) {
+            if(exception == null) return e;
+            else exception.addSuppressed(e);
+        }
+        return exception;
+    }
 
-    @Override
-    protected void lateUpdate() { }
+    private RuntimeException runLateInternalUpdate(GameObject object, RuntimeException exception) {
+        if(object.getMap() != this) return exception;
+        try {
+            object.lateInternalUpdate();
+        } catch(RuntimeException e) {
+            if(exception == null) return e;
+            else exception.addSuppressed(e);
+        }
+        return exception;
+    }
 
-    @Override
-    protected void physicsUpdate() { }
+    private RuntimeException runLateUpdate(GameObject object, RuntimeException exception) {
+        if(object.getMap() != this) return exception;
+        try {
+            object.lateUpdate();
+        } catch(RuntimeException e) {
+            if(exception == null) return e;
+            else exception.addSuppressed(e);
+        }
+        return exception;
+    }
+
+    private RuntimeException runVeryLateInternalUpdate(GameObject object, RuntimeException exception) {
+        if(object.getMap() != this) return exception;
+        try {
+            object.veryLateInternalUpdate();
+        } catch(RuntimeException e) {
+            if(exception == null) return e;
+            else exception.addSuppressed(e);
+        }
+        return exception;
+    }
+
+
+    /**
+     * Runs a full update loop for this map and all its gameobjects.
+     */
+    public void runFrame() {
+        onAct();
+    }
 
 
 
@@ -502,16 +625,17 @@ public abstract class Map extends ComplexUpdateable {
 
     /**
      * Returns the background image of this map.
-     * 
+     *
      * @return The map's background
      */
-    public Image getBackground() {
+    @Override
+    public Image getImage() {
         return image != null ? image : (image = Image.block(getWidth(), getHeight(), Color.WHITE));
     }
 
     /**
      * Returns the cell size of map.
-     * 
+     *
      * @return The map's cell size
      */
     public int getCellSize() {
@@ -520,59 +644,72 @@ public abstract class Map extends ComplexUpdateable {
 
     /**
      * Returns the color of the background at the specified location.
-     * 
+     *
      * @param x The x coordinate of the pixel to get the color of
      * @param y The y coordinate of the pixel to get the color of
      * @return The color at that pixel
      */
     public Color getColorAt(int x, int y) {
-        return getBackground().getColorAt(x, y);
+        return getImage().getColorAt(x, y);
     }
 
     /**
      * Returns the height of the map, in cells.
-     * 
+     *
      * @return The map's height
      */
+    @Override
     public int getHeight() {
         return height;
     }
 
     /**
      * Returns all objects on this map.
-     * 
+     *
      * @return A set of all objects currently on this map
      */
     public Set<GameObject> findAll() {
-        return allStream().collect(Collectors.toSet());
+        return Collections.unmodifiableSet(objects);
     }
 
     /**
      * Returns a stream of all objects of this map.
-     * 
+     *
      * @return A stream of all objects in this map
      */
-    protected Stream<GameObject> allStream() {
-        return world.getObjects(SupportActor.class).stream().map(SupportActor::gameObject);
+    public Stream<GameObject> stream() {
+        return objects.stream();
     }
 
     /**
      * Returns a stream of all objects of the given class of this map
-     * 
+     *
      * @param <T> The type of objects
      * @param cls The class of the objects in the stream
      * @return A stream with only the objects from this world that are from the
      *         given class
      */
     @SuppressWarnings("unchecked")
-    protected <T> Stream<T> allStream(Class<T> cls) {
-        Objects.requireNonNull(cls);
-        return allStream().filter(cls::isInstance).map(o -> (T)o);
+    public <T> Stream<T> stream(Class<T> cls) {
+        Arguments.checkNull(cls);
+        return streamObjects(cls).map(o -> (T)o);
+    }
+
+    /**
+     * Returns a stream of all objects of the given class of this map, as gameobjects.
+     *
+     * @param cls The class of the objects in the stream
+     * @return A stream with only the objects from this world that are from the
+     *         given class
+     */
+    protected Stream<GameObject> streamObjects(Class<?> cls) {
+        Arguments.checkNull(cls);
+        return stream().filter(cls::isInstance);
     }
 
     /**
      * Returns all objects of this map that match the given class and filter.
-     * 
+     *
      * @param <T> The type of object
      * @param cls The class of the objects returned
      * @param filter A filter indicating weather an object should be included,
@@ -582,25 +719,25 @@ public abstract class Map extends ComplexUpdateable {
      */
     @SuppressWarnings("unchecked")
     protected <T> Set<T> findAllFiltered(Class<T> cls, Predicate<GameObject> filter) {
-        Objects.requireNonNull(cls);
-        return allStream().filter(cls::isInstance).filter(filter).map(o -> (T)o).collect(Collectors.toSet());
+        Arguments.checkNull(cls);
+        return stream().filter(cls::isInstance).filter(filter).map(o -> (T)o).collect(Collectors.toSet());
     }
 
     /**
      * Finds all objects from the given class from this map.
-     * 
+     *
      * @param <A> The type of object
      * @param cls The class of the objects to find
      * @return All objects of the given class from this map
      */
     public <A> Set<A> findAll(Class<A> cls) {
-        return allStream(cls).collect(Collectors.toSet());
+        return stream(cls).collect(Collectors.toSet());
     }
 
     /**
      * Finds all objects from the given class at the specified location on
      * this map.
-     * 
+     *
      * @param <A> The type of object
      * @param location The location that the objects must be at
      * @param cls The class of the objects to find
@@ -608,16 +745,27 @@ public abstract class Map extends ComplexUpdateable {
      *         this map
      */
     public <A> Set<A> findAllAt(Vector location, Class<A> cls) {
-        return findAllFiltered(cls, o -> o.getLocation().equals(location));
+        return findAllFiltered(cls, o -> o.location().equals(location));
     }
 
     /**
      * Returns the width of this map, in cells.
-     * 
+     *
      * @return The map's width
      */
+    @Override
     public int getWidth() {
         return width;
+    }
+
+    /**
+     * Returns the size of this map, in cells.
+     *
+     * @return The map's size
+     */
+    @Override
+    public Vector getSize() {
+        return Vector.of(getWidth(), getHeight());
     }
 
     /**
@@ -631,7 +779,7 @@ public abstract class Map extends ComplexUpdateable {
     /**
      * Shows the given text on the background of the map. If there already is
      * text shown on that exact location it will be replaced.
-     * 
+     *
      * @param text The string to display
      * @param x The x coordinate of the center of the text
      * @param y The y coordinate of the center of the text
@@ -644,45 +792,164 @@ public abstract class Map extends ComplexUpdateable {
      * Executed when the update-loop gets resumed. Intended to be overridden.
      */
     public void started() {
-        
+
     }
 
     /**
      * Executed when the update-loop gets paused. Intended to be overridden.
      */
     public void paused() {
-        
+
     }
 
     /**
-     * Returns a string representation of this object. By default this will be
+     * Returns a string representation of this object. By default, this will be
      * its class name and its size.
      */
     @Override
     public String toString() {
-        return (getClass().isAnonymousClass() ? getClass().getSuperclass().getSimpleName() : getClass().getSimpleName())
+        return (Core.getRealSession().isJava() && getClass().isAnonymousClass() ? getClass().getSuperclass().getSimpleName() : getClass().getSimpleName())
                 + " (" + getWidth() + "x" + getHeight() + ")";
     }
 
     /**
-     * Sets the background image of this map. If the image is to small, it will
+     * Sets the background image of this map. If the image is too small, it will
      * be repeated, if it is too large, it will be cut.
-     * 
+     *
      * @param image The image to set as background image.
      */
-    public void setBackground(Image image) {
+    @Override
+    public void setImage(Image image) {
+        if(world == null) return; // During super ctor call
         world.setBackground(Image.asGImage(image));
         if(image.getWidth() != getWidth() || image.getHeight() != getHeight()) {
             // If the image does not fit it will be modified so that in any case
             // the initially passed instance IS the instance used by the map.
-            image.scale(getWidth(), getHeight());
+            image.scale(getWidth() * getCellSize(), getHeight() * getCellSize());
             image.clear();
             image.drawImage(Image.of(world.getBackground()), 0, 0);
         }
         this.image = image;
     }
 
+    /**
+     * Returns whether this map is currently being displayed.
+     *
+     * @return {@code true} if this map is the one currently displayed, {@code false}
+     *         otherwise
+     */
+    public boolean isActiveMap() {
+        return this == Core.getMap();
+    }
 
+
+    @Override
+    SupportActor createActor() {
+        return new MapSupportActor();
+    }
+
+    final class MapSupportActor extends SupportActor {
+
+    }
+
+    @Override
+    public Map getMap() {
+        return this;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <M> M getMap(Class<M> mapType) {
+        Arguments.checkNull(mapType);
+        return mapType.isInstance(this) ? (M) this : null;
+    }
+
+    @Override
+    public boolean remove() {
+        return false;
+    }
+
+    @Override
+    public Map setId(String id) {
+        super.setId(id);
+        return this;
+    }
+
+    @Override
+    public Vector location() {
+        // Must be mutable
+        return Vector.of(getWidth() / 2d, getHeight() / 2d);
+    }
+
+    @Override
+    public double rotation() {
+        return 0;
+    }
+
+    @Override
+    public void setRotation(double rotation) {
+        // Do nothing; DON'T throw any exceptions
+    }
+
+    @Override
+    protected void transformModified() {
+        // Never relevant
+    }
+
+    @Override
+    void ensureTransformUpToDate() {
+
+    }
+
+    @Override
+    void updateActor() {
+
+    }
+
+    @Override
+    protected <A> Set<A> findAllAtOffset(Class<A> cls, Vector offset) {
+        return super.findAllAtOffset(cls, offset);
+    }
+
+    @Override
+    protected <A> Set<A> findAllInRange(Class<A> cls, double radius) {
+        return super.findAllInRange(cls, radius);
+    }
+
+    @Override
+    public GameObject addOnAdd(Consumer<Map> action) {
+        return super.addOnAdd(action);
+    }
+
+    @Override
+    public GameObject addOnAdd(Runnable action) {
+        return super.addOnAdd(action);
+    }
+
+    @Override
+    public GameObject removeOnAdd(Consumer<Map> action) {
+        return super.removeOnAdd(action);
+    }
+
+    @Override
+    public GameObject addOnRemove(Consumer<Map> action) {
+        return super.addOnRemove(action);
+    }
+
+    @Override
+    public GameObject addOnRemove(Runnable action) {
+        return super.addOnRemove(action);
+    }
+
+    @Override
+    public GameObject removeOnRemove(Consumer<Map> action) {
+        return super.removeOnRemove(action);
+    }
+
+    @Override
+    void addedToMap(Map map) {
+        super.addedToMap(map);
+    }
 
     public static World asWorld(Map map) {
         return map.world;
@@ -704,7 +971,7 @@ public abstract class Map extends ComplexUpdateable {
      */
     @Deprecated
     public static <R> R executeOnCurrent(Function<Map, R> command) {
-        return command.apply(Core.getMap().orElse(null));
+        return command.apply(Core.getMap());
     }
 
 
@@ -731,7 +998,7 @@ public abstract class Map extends ComplexUpdateable {
 
         @Override
         public GreenfootImage getBackground() {
-            GreenfootImage image = Image.asGImage(Map.this.getBackground());
+            GreenfootImage image = Image.asGImage(Map.this.getImage());
             if(image == null) {
                 image = new GreenfootImage(getWidth(), getHeight());
                 image.setColor(greenfoot.Color.WHITE);
@@ -777,12 +1044,13 @@ public abstract class Map extends ComplexUpdateable {
 
         @Override
         public void removeObject(Actor object) {
+            if(object instanceof MapSupportActor) return;
             super.removeObject(object);
         }
 
         @Override
         public void removeObjects(Collection<? extends Actor> objects) {
-            super.removeObjects(objects);
+            for(Actor o : objects) removeObject(o);
         }
 
         @Override
@@ -811,35 +1079,36 @@ public abstract class Map extends ComplexUpdateable {
 
         @Override
         public void started() {
-            Map.this.paused();
+            Map.this.started();
         }
 
         @Override
         public void stopped() {
-            Map.this.started();
+            Map.this.paused();
         }
 
         @Override
         public String toString() {
             return Map.this.toString();
         }
-
-        Map map() {
-            return Map.this;
-        }
     }
 
 
 
-    public static abstract class MapLoader extends World {
+    public static class Loader extends World {
+
+        static {
+            Core.initialize();
+        }
 
         private static boolean initialized = false;
 
         private Map map;
 
-        private final boolean startRunning;
+        private boolean startRunning;
 
-        public MapLoader() {
+        @Deprecated
+        public Loader() {
             super(600, 400, 1);
             String name = getClass().getSimpleName();
             String className = name.substring(0, name.length() - 6);
@@ -848,33 +1117,40 @@ public abstract class Map extends ComplexUpdateable {
                 try {
                     Constructor<?> ctor = Class.forName(className).getDeclaredConstructor();
                     return (Map)ctor.newInstance();
-                } catch(Exception e) {
-                    throw new RuntimeException(e);
+                } catch(Throwable t) {
+                    throw new RuntimeException("Failed to generate map instance using reflection", t);
                 }
             });
         }
 
-        public MapLoader(String className) {
+        public Loader(String className) {
             this(() -> {
                 try {
                     Constructor<?> ctor = Class.forName(className).getDeclaredConstructor();
                     return (Map)ctor.newInstance();
-                } catch(Exception e) {
-                    throw new RuntimeException(e);
+                } catch(Throwable t) {
+                    throw new RuntimeException("Failed to generate map instance using reflection", t);
                 }
             }, false);
         }
 
-        public MapLoader(Supplier<Map> mapGenerator, boolean startRunning) {
+        public Loader(Supplier<Map> mapGenerator, boolean startRunning) {
             this(600, 400, mapGenerator, startRunning);
         }
 
-        public MapLoader(int width, int height, Supplier<Map> mapGenerator, boolean startRunning) {
+        public Loader(int width, int height, Supplier<Map> mapGenerator, boolean startRunning) {
             super(width, height, 1);
             this.startRunning = startRunning;
 
+            // Saved across multiple runs because static variables only get reset when
+            // the vm restarts -> don't reload fully every time
             if(!initialized) {
-                initialize();
+                try {
+                    initialize();
+                } catch (Exception e) {
+                    Console.error("Exception initializing map loader");
+                    e.printStackTrace();
+                }
                 initialized = true;
             }
             load(mapGenerator);
@@ -885,7 +1161,19 @@ public abstract class Map extends ComplexUpdateable {
                 Image.text("Loading...", Color.DARK_GRAY, Font.modern(20)).asGameObject() :
                 Image.text("Loading...\nIf you are offline and continue to see this image, simply\nhit reset. It should only occur whenever the start map's\nname was changed.", Color.DARK_GRAY, Font.modern(20)).asGameObject()
             ), getWidth() / 2, getHeight() / 2);
-            map = mapGenerator.get();
+            try {
+                map = mapGenerator.get();
+            } catch(Exception e) {
+                Console.error("Exception in map generator");
+                e.printStackTrace();
+                StringWriter writer = new StringWriter();
+                e.printStackTrace(new PrintWriter(writer));
+                Image errorMessageImage = Image.text("Failed to load map:\n\n" + writer, Color.RED, Font.monospace(20));
+                Image errorMessageImageWithBackground = Image.block(errorMessageImage.getSize(), Color.DARK_GRAY);
+                errorMessageImageWithBackground.drawImage(errorMessageImage, 0, 0);
+                map = new Map(errorMessageImage.getWidth(), errorMessageImage.getHeight()) {{ setImage(errorMessageImageWithBackground); }};
+                startRunning = false;
+            }
             Core.setMap(map);
             map.render();
             if(startRunning || Core.getSession() == Session.ONLINE) Core.run();
@@ -898,6 +1186,6 @@ public abstract class Map extends ComplexUpdateable {
             map.render();
         }
 
-        public void initialize() { }
+        protected void initialize() { }
     }
 }
